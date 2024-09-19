@@ -2,65 +2,82 @@
 import React, { useState } from "react";
 import { TaskStatus } from "./types";
 
-interface TaskInputProps {  
+interface TaskInputProps {
   addTask: (content: string, status: TaskStatus) => void;
+  statuses: TaskStatus[];
 }
 
-const TaskInput: React.FC<TaskInputProps> = ({ addTask }) => {
+const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
   const [content, setContent] = useState("");
   const [status, setStatus] = useState<TaskStatus>("to-do");
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (content.trim()) {
       addTask(content, status);
-      setContent("");   
-    } 
+      setContent("");
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mb-4">
-      <input
-        type="text"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="h-[45px] 
-        w-[350px]
-        min-w-[350px]
+    <div>
+      <form onSubmit={handleSubmit} className="mb-4 flex flex-col sm:flex-row items-start sm:items-center">
+        <div className="flex rounded-lg">
+          <div className="relative w-full">
+            <input
+              type="text"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="h-[45px] 
+        w-full sm:w-auto min-w-[150px]
+        bg-gray-100 bg-opacity-50
         cursor-pointor
-        rounded-lg
-        border-2
+        rounded-l-lg
+        text-white
         p-4
-        ring-rose-500
-        hover:ring-2
         outline-none
-        focus:ring-rose-500
-        focus:ring-2
+        placeholder:text-white
+      placeholder:font-semibold
         "
-        placeholder="Enter task"
-      />
-      <select
-        value={status}
-        onChange={(e) => setStatus(e.target.value as TaskStatus)}
-        className="border rounded p-2 ml-2"
-      >
-        <option value="to-do">To Do</option>
-        <option value="doing">Doing</option>
-        <option value="done">Done</option>
-      </select>
-      <button
-        type="submit"
-        className="p-2 ml-2
-        bg-gray-100 bg-opacity-20 text-white py-2 px-4 rounded-lg
-        border-2
+              placeholder="Enter task"
+            />
+          </div>
+          <div className="w-[1px] bg-gray-300 h-[45px]" />
+          <div className="relative">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as TaskStatus)}
+              className="border-l-0
+            rounded-r-lg
+            sm:rounded-r-lg h-[45px] 
+            cursor-pointer 
+            bg-gray-100 bg-opacity-50 outline-none
+            px-4
+            text-center
+            "
+            >
+              {statuses.map(status => (
+              <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+            ))}
+            </select>
+          </div>
+        </div>
+        <button
+          type="submit"
+          className="p-2 ml-0 sm:ml-2 mt-2 sm:mt-0
+        bg-gray-100 bg-opacity-20 text-white py-2 px-4 rounded-lg font-semibold
         hover:bg-red-100
         hover:bg-opacity-50
-        
+        h-[45px]
+        w-full sm:w-auto
         "
-      >
-        Add Task
-      </button>
-    </form>
+        >
+          Add Task
+        </button>
+      </form >
+
+    </div>
   );
 };
 
