@@ -33,6 +33,7 @@ interface TaskItemProps {
 const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) => {
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [newContent, setNewContent] = useState<string>(task.content);
+    const [isButtonClicked, setIsButtonClicked] = useState(false);
 
     useEffect(() => {
         setNewContent(task.content);
@@ -46,6 +47,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) =
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
         id: task.id,
+        disabled: isButtonClicked,
     });
 
     const { isOver, setNodeRef: setDroppableRef } = useDroppable({
@@ -62,6 +64,13 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) =
         deleteTask(task.id);
     };
 
+    useEffect(() => {
+        if (isButtonClicked) {
+            const timer = setTimeout(() => setIsButtonClicked(false), 300); // Adjust time as needed
+            return () => clearTimeout(timer);
+        }
+    }, [isButtonClicked]);
+
     return (
         <div
             ref={setNodeRef}
@@ -72,6 +81,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) =
             )}
             onClick={(e) => e.stopPropagation()}
         >
+            
             {isEditing ? (
                 <input
                     type="text"
@@ -113,6 +123,8 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) =
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setIsEditing(true)
+                                console.log("Update icon pressed")
+                                setIsButtonClicked(true);
                             }}
                         >
                             <UpdateIcon />
@@ -121,6 +133,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) =
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleDelete(e);
+                                setIsButtonClicked(true);
                             }}
                             className="hover:text-red-500"
                         >

@@ -22,7 +22,7 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
 
   return (
     <div>
-      <form onSubmit={handleSubmit} className="mb-4 flex flex-col sm:flex-row items-start sm:items-center">
+      <form onSubmit={handleSubmit} className="mb-4 flex flex-col sm:flex-row sm:items-center">
         <div className="flex rounded-lg">
           <div className="relative w-full">
             <input
@@ -70,7 +70,7 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
         hover:bg-red-100
         hover:bg-opacity-50
         h-[45px]
-        w-full sm:w-auto
+        w-full sm:w-auto md:w-auto
         "
         >
           Add Task

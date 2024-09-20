@@ -21,7 +21,7 @@ const Signup: React.FC = () => {
     try {
       await signUp(email, password);
       navigate('/board');
-      toast.success("User Registered Successfully!!", {
+      toast.success("User R egistered Successfully!!", {
         position: "top-right",
       });
     } catch (error) {
@@ -34,7 +34,8 @@ const Signup: React.FC = () => {
 
   return (
     <div className="flex items-center justify-center">
-      <div className="bg-gray-800 bg-opacity-20 p-8 rounded-lg shadow-lg w-full max-w-md">
+      <div className="bg-gray-800 bg-opacity-20 p-8 mt-20 rounded-lg shadow-lg w-full max-w-md">
+        <h1 className='text-4xl font-bold text-center text-white mb-6'>Trello</h1>
         <h1 className="text-2xl font-bold text-center text-gray-700 mb-6">Register an account</h1>
         <form onSubmit={handleSignup} className="space-y-4">
           {error && <p className="text-red-500">{error}</p>}
