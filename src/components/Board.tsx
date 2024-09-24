@@ -323,10 +323,10 @@ const Board: React.FC = () => {
 
             try {
 
-                await Promise.all(newStatuses.map((status, index) => 
+                await Promise.all(newStatuses.map((status, index) =>
                     update(ref(database, `statuses/${user.uid}/${status}`), { orderIndex: index })
                 ));
-    
+
                 setStatuses(newStatuses);
             } catch (error) {
                 console.error("Error swapping status order:", error);
@@ -339,16 +339,28 @@ const Board: React.FC = () => {
 
     const getTasksByStatus = (status: TaskStatus) => tasks.filter(task => task.status === status);
 
-    const moveStatus = (activeStatus: string, overStatus: string) => {
+    const moveStatus =  async (activeStatus: string, overStatus: string) => {
         const newStatuses = [...statuses];
         const activeIndex = newStatuses.findIndex(status => status === activeStatus);
         const overIndex = newStatuses.findIndex(status => status === overStatus);
-    
+
         if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
             const [movedStatus] = newStatuses.splice(activeIndex, 1);
             newStatuses.splice(overIndex, 0, movedStatus);
-    
-            setStatuses(newStatuses);
+
+            const user = auth.currentUser;
+            if (!user) return;
+
+            try {
+
+                await Promise.all(newStatuses.map((status, index) =>
+                    update(ref(database, `statuses/${user.uid}/${status}`), { orderIndex: index })
+                ));
+
+                setStatuses(newStatuses);
+            } catch (error) {
+                console.error("Error swapping status order:", error);
+            }
         }
     };
 
@@ -356,11 +368,11 @@ const Board: React.FC = () => {
         const newTasks = [...tasks];
         const activeIndex = newTasks.findIndex(task => task.id === activeTask);
         const overIndex = newTasks.findIndex(task => task.id === overTask);
-    
+
         if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
             const [movedTask] = newTasks.splice(activeIndex, 1);
             newTasks.splice(overIndex, 0, movedTask);
-    
+
             setTasks(newTasks);
         }
     };
@@ -405,7 +417,7 @@ const Board: React.FC = () => {
                             id={hoveredStatus}
                             status={hoveredStatus}
                             deleteStatus={deleteStatus}
-                            tasks={getTasksByStatus(hoveredStatus)} 
+                            tasks={getTasksByStatus(hoveredStatus)}
                             isLoading={isLoading}
                             deleteTask={deleteTask}
                             handleUpdate={handleUpdate}
