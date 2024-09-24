@@ -1,18 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-    collection,
-    addDoc,
-    query,
-    where,
-    getDocs,
-    doc,
-    deleteDoc,
-    updateDoc,
-    writeBatch,
-    orderBy,
-    onSnapshot
-} from "firebase/firestore";
-import { auth, db } from './firebaseConfig';
+import { auth, database } from './firebaseConfig';
 import TaskInput from "./TaskInput";
 import { Task, TaskStatus } from './types';
 import {
@@ -23,7 +10,6 @@ import {
     DragStartEvent,
     KeyboardSensor,
     PointerSensor,
-    UniqueIdentifier,
     useSensor,
     useSensors
 } from '@dnd-kit/core';
@@ -34,6 +20,7 @@ import Modal from './Modal';
 import PlusIcon from "../icons/PlusIcon";
 import SortableStatus from "./SortableStatus";
 import DropZone from "./DropZone";
+import { ref, set, get, onValue, remove, update } from "firebase/database";
 
 const defaultStatuses: TaskStatus[] = ["to-do", "doing", "done"];
 
@@ -50,23 +37,25 @@ const Board: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [newStatusName, setNewStatusName] = useState<string>("");
     const [draggedStatus, setDraggedStatus] = useState<DraggedStatus | null>(null);
+    const [isDraggingItem, setIsDraggingItem] = useState<boolean | null>(false);
+    const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
+
 
     useEffect(() => {
         const user = auth.currentUser;
         if (!user) return;
 
-        const tasksQuery = query(
-            collection(db, "tasks"),
-            where("userId", "==", user.uid),
-            orderBy("orderIndex")
-        );
+        const userTasksRef = ref(database, `tasks/${user.uid}`);
+        const userStatusesRef = ref(database, `statuses/${user.uid}`);
 
-        const unsubscribeTasks = onSnapshot(tasksQuery, (querySnapshot) => {
+        const unsubscribeTasks = onValue(userTasksRef, (snapshot) => {
             const tasksArray: Task[] = [];
-            querySnapshot.forEach((doc) => {
-                const taskData = doc.data() as Task;
-                tasksArray.push({ ...taskData, id: doc.id });
+            snapshot.forEach((childSnapshot) => {
+                const taskData = childSnapshot.val();
+                tasksArray.push({ ...taskData, id: childSnapshot.key as string });
             });
+
+            tasksArray.sort((a, b) => a.orderIndex - b.orderIndex);
             setTasks(tasksArray);
             setIsLoading(false);
         }, (error) => {
@@ -74,18 +63,29 @@ const Board: React.FC = () => {
             setIsLoading(false);
         });
 
-        const statusesQuery = query(
-            collection(db, "statuses"),
-            where("userId", "==", user.uid)
-        );
+        const unsubscribeStatuses = onValue(userStatusesRef, (snapshot) => {
+            if (!snapshot.exists()) {
+                const updates = defaultStatuses.reduce((acc, status, index) => {
+                    acc[status] = { statusName: status, orderIndex: index };
+                    return acc;
+                }, {} as Record<string, { statusName: string; orderIndex: number }>);
+                set(userStatusesRef, updates);
+                setStatuses(defaultStatuses);
+            } else {
+                const statusesArray: TaskStatus[] = [];
+                snapshot.forEach((childSnapshot) => {
+                    const statusData = childSnapshot.val();
+                    statusesArray.push(statusData.statusName);
+                });
 
-        const unsubscribeStatuses = onSnapshot(statusesQuery, (querySnapshot) => {
-            const statusesArray: TaskStatus[] = [...defaultStatuses];
-            querySnapshot.forEach((doc) => {
-                const statusData = doc.data().statusName as TaskStatus;
-                statusesArray.push(statusData);
-            });
-            setStatuses(statusesArray);
+                statusesArray.sort((a, b) => {
+                    const indexA = snapshot.child(a).val().orderIndex;
+                    const indexB = snapshot.child(b).val().orderIndex;
+                    return indexA - indexB;
+                });
+
+                setStatuses(statusesArray);
+            }
         });
 
         return () => {
@@ -103,25 +103,48 @@ const Board: React.FC = () => {
             if (!user) return;
 
             try {
-                await addDoc(collection(db, "statuses"), {
-                    userId: user.uid,
-                    statusName: newStatusName,
-                    orderIndex: statuses.length
+                await set(ref(database, `statuses/${user.uid}/${newStatusName.trim()}`), {
+                    statusName: newStatusName.trim(),
+                    orderIndex: statuses.length,
                 });
 
-                setStatuses([...statuses, newStatusName]);
                 setNewStatusName("");
                 setIsModalOpen(false);
             } catch (error) {
                 console.error("Error adding status:", error);
             }
         } else {
-            toast.error("Unexpected behaviour");
+            toast.error("Unexpected behavior");
         }
     };
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
+
+    const addTaskInStatus = async (status: TaskStatus) => {
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const tasksInStatus = tasks.filter(task => task.status === status);
+            const orderIndex = tasksInStatus.length;
+
+            const taskId = `${status}-${Date.now()}`;
+
+            const taskData = {
+                userId: user.uid,
+                content: `Task ${orderIndex + 1}`,
+                status,
+                createdAt: new Date().toISOString(),
+                orderIndex
+            };
+
+            const taskRef = ref(database, `tasks/${user.uid}/${taskId}`);
+            await set(taskRef, taskData);
+        } catch (error) {
+            console.error("Error adding task:", error);
+        }
+    }
 
     const addTask = async (content: string, status: TaskStatus) => {
         try {
@@ -135,11 +158,12 @@ const Board: React.FC = () => {
                 userId: user.uid,
                 content,
                 status,
-                createdAt: new Date(),
+                createdAt: new Date().toISOString(),
                 orderIndex
             };
 
-            await addDoc(collection(db, "tasks"), taskData);
+            const taskRef = ref(database, `tasks/${user.uid}/${content}`);
+            await set(taskRef, taskData);
         } catch (error) {
             console.error("Error adding task:", error);
         }
@@ -155,20 +179,18 @@ const Board: React.FC = () => {
         if (!user) return;
 
         try {
-            const tasksToDelete = tasks.filter(task => task.status === statusToDelete);
-            tasksToDelete.forEach(async (task) => {
-                await deleteTask(task.id);
-            });
 
-            const statusesQuery = query(
-                collection(db, "statuses"),
-                where("userId", "==", user.uid),
-                where("statusName", "==", statusToDelete)
+            const tasksToDeleteSnapshot = await get(ref(database, `tasks/${user.uid}/${statusToDelete}`));
+            const tasksToDelete = tasksToDeleteSnapshot.val() || {};
+
+
+            const deleteTasksPromises = Object.keys(tasksToDelete).map(taskId =>
+                remove(ref(database, `tasks/${user.uid}/${taskId}`))
             );
-            const statusSnapshot = await getDocs(statusesQuery);
-            statusSnapshot.forEach(async (statusDoc) => {
-                await deleteDoc(statusDoc.ref);
-            });
+            await Promise.all(deleteTasksPromises);
+
+
+            await remove(ref(database, `statuses/${user.uid}/${statusToDelete}`));
 
             const updatedStatuses = statuses.filter(status => status !== statusToDelete);
             setStatuses(updatedStatuses);
@@ -179,144 +201,169 @@ const Board: React.FC = () => {
         }
     };
 
+
     const deleteTask = async (taskId: string) => {
         try {
-            const taskDocRef = doc(db, "tasks", taskId);
-            await deleteDoc(taskDocRef);
+            const user = auth.currentUser;
+            if (!user) return;
+            const taskRef = ref(database, `tasks/${user.uid}/${taskId}`);
+            await remove(taskRef);
             setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-            toast.success("Task deleted successfully", {
-                position: "top-right"
-            });
+            toast.success("Task deleted successfully", { position: "top-right" });
         } catch (error) {
             console.error("Error deleting task:", error);
-            toast.error("Error deleting task", {
-                position: "top-right"
-            });
+            toast.error("Error deleting task", { position: "top-right" });
         }
     };
 
     const handleUpdate = async (taskId: string, newContent: string) => {
         try {
-            setTasks(tasks.map(task => (task.id === taskId ? { ...task, content: newContent } : task)));
-            const taskDocRef = doc(db, "tasks", taskId);
-            await updateDoc(taskDocRef, {
+            const user = auth.currentUser;
+            if (!user) return;
+            const taskRef = ref(database, `tasks/${user.uid}/${taskId}`);
+            await update(taskRef, {
                 content: newContent,
-                updatedAt: new Date(),
+                updatedAt: new Date().toISOString(),
             });
-            toast.success("Task updated successfully", {
-                position: "top-right"
-            });
+            setTasks(tasks.map(task => (task.id === taskId ? { ...task, content: newContent } : task)));
+            toast.success("Task updated successfully", { position: "top-right" });
         } catch (error) {
-            console.error("Error updating task: ", error);
-            toast.error("Error updating task", {
-                position: "top-right"
-            });
+            console.error("Error updating task:", error);
+            toast.error("Error updating task", { position: "top-right" });
         }
     };
 
     const handleDragStart = (event: DragStartEvent) => {
+        setIsDraggingItem(true);
         const activeId = event.active.id.toString();
 
         const activeTask = tasks.find(task => task.id === activeId);
         if (activeTask) {
             setDraggedTask(activeTask);
+            setDraggedStatus(null);
         } else {
             const activeStatus = statuses.find(status => status === activeId);
             if (activeStatus) {
                 const statusTasks = tasks.filter(task => task.status === activeStatus);
                 setDraggedStatus({ status: activeStatus, tasks: statusTasks });
+                setDraggedTask(null);
             }
         }
     };
 
+
     const handleDragEnd = async (event: DragEndEvent) => {
-        try {
-            setDraggedTask(null);
-            setDraggedStatus(null);
+        setIsDraggingItem(null)
+        const { active, over } = event;
+        if (!over) return;
 
-            const { active, over } = event;
+        const activeTaskId = active.id.toString();
+        const activeTask = tasks.find(task => task.id === activeTaskId);
 
-            if (!over) return;
+        if (!activeTask) return;
 
-            const activeTaskId = active.id.toString();
-            const overId = over.id.toString();
-            const activeTask = tasks.find(task => task.id === activeTaskId);
-            const currentStatus = overId as TaskStatus;
-            const tasksInStatus = tasks.filter(task => task.status === currentStatus);
-            const orderIndexStatus = tasksInStatus.length;
+        const overTask = tasks.find(task => task.id === over.id.toString());
+        const isMovingToEmptyColumn = !overTask;
 
-            if (!activeTask) return;
+        const user = auth.currentUser;
+        if (!user) return;
 
-            const overTask = tasks.find(task => task.id === overId);
-            const isMovingToEmptyColumn = !overTask;
+        if (isMovingToEmptyColumn || activeTask.status !== overTask?.status) {
+            const newStatus: TaskStatus = isMovingToEmptyColumn ? over.id.toString() : overTask.status;
+            const tasksSnapshot = await get(ref(database, `tasks/${user.uid}/${newStatus}`));
+            const newOrderIndex = tasksSnapshot.val() ? Object.keys(tasksSnapshot.val()).length : 0;
 
-            let updatedTasks: Task[] = [];
-            if (isMovingToEmptyColumn || activeTask.status !== overTask?.status) {
-                const newStatus: TaskStatus = isMovingToEmptyColumn ? overId as TaskStatus : overTask.status;
-                const newOrderIndex = tasks.filter(task => task.status === newStatus).length;
 
-                updatedTasks = tasks.map(task => {
-                    if (task.id === activeTaskId) {
-                        return { ...task, status: newStatus, orderIndex: newOrderIndex };
-                    }
-                    return task;
-                });
+            await update(ref(database, `tasks/${user.uid}/${activeTaskId}`), {
+                status: newStatus,
+                orderIndex: newOrderIndex,
+                updatedAt: new Date().toISOString(),
+            });
+        } else {
 
-                const taskDocRef = doc(db, "tasks", activeTaskId);
-                await updateDoc(taskDocRef, {
-                    status: newStatus,
-                    orderIndex: newOrderIndex,
-                    updatedAt: new Date(),
-                });
-            } else {
-                const reorderedTasks = [...tasks];
-                const activeIndex = reorderedTasks.findIndex(task => task.id === activeTaskId);
-                const overIndex = reorderedTasks.findIndex(task => task.id === overId);
+            const reorderedTasks = [...tasks];
+            const activeIndex = reorderedTasks.findIndex(task => task.id === activeTaskId);
+            const overIndex = reorderedTasks.findIndex(task => task.id === over.id.toString());
 
-                reorderedTasks.splice(activeIndex, 1);
-                reorderedTasks.splice(overIndex, 0, activeTask);
 
-                const batch = writeBatch(db);
-                reorderedTasks.forEach((task, index) => {
-                    const taskDocRef = doc(db, "tasks", task.id);
-                    batch.update(taskDocRef, { orderIndex: index });
-                });
-                await batch.commit();
-                setTasks(reorderedTasks);
-                return;
-            }
-            setTasks(updatedTasks);
-        } catch (error) {
-            console.error("Error during drag and drop: ", error);
+            const [movedTask] = reorderedTasks.splice(activeIndex, 1);
+            reorderedTasks.splice(overIndex, 0, movedTask);
+
+
+            const batchUpdates = reorderedTasks.map((task, index) =>
+                update(ref(database, `tasks/${user.uid}/${task.id}`), { orderIndex: index })
+            );
+
+            await Promise.all(batchUpdates);
+            setTasks(reorderedTasks);
         }
+        setDraggedStatus(null)
+        setDraggedTask(null)
     };
 
     const handleStatusDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
-
         if (!over || active.id === over.id) return;
+
+        setHoveredStatus(over.id.toString());
 
         const newStatuses = [...statuses];
         const activeIndex = newStatuses.findIndex(status => status === active.id.toString());
         const overIndex = newStatuses.findIndex(status => status === over.id.toString());
 
-        const [movedStatus] = newStatuses.splice(activeIndex, 1);
-        newStatuses.splice(overIndex, 0, movedStatus);
-        setStatuses(newStatuses);
 
-        try {
-            const batch = writeBatch(db);
-            newStatuses.forEach((status, index) => {
-                const statusDocRef = doc(db, "statuses", status);
-                batch.update(statusDocRef, { orderIndex: index });
-            });
-            await batch.commit();
-        } catch (error) {
-            console.error("Error updating status order:", error);
+        if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+
+            const [movedStatus] = newStatuses.splice(activeIndex, 1);
+
+            newStatuses.splice(overIndex, 0, movedStatus);
+
+            const user = auth.currentUser;
+            if (!user) return;
+
+            try {
+
+                await Promise.all(newStatuses.map((status, index) => 
+                    update(ref(database, `statuses/${user.uid}/${status}`), { orderIndex: index })
+                ));
+    
+                setStatuses(newStatuses);
+            } catch (error) {
+                console.error("Error swapping status order:", error);
+            }
         }
+        setHoveredStatus(null);
+        setDraggedStatus(null);
+        setDraggedTask(null);
     };
 
     const getTasksByStatus = (status: TaskStatus) => tasks.filter(task => task.status === status);
+
+    const moveStatus = (activeStatus: string, overStatus: string) => {
+        const newStatuses = [...statuses];
+        const activeIndex = newStatuses.findIndex(status => status === activeStatus);
+        const overIndex = newStatuses.findIndex(status => status === overStatus);
+    
+        if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+            const [movedStatus] = newStatuses.splice(activeIndex, 1);
+            newStatuses.splice(overIndex, 0, movedStatus);
+    
+            setStatuses(newStatuses);
+        }
+    };
+
+    const moveTasks = (activeTask: string, overTask: string) => {
+        const newTasks = [...tasks];
+        const activeIndex = newTasks.findIndex(task => task.id === activeTask);
+        const overIndex = newTasks.findIndex(task => task.id === overTask);
+    
+        if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+            const [movedTask] = newTasks.splice(activeIndex, 1);
+            newTasks.splice(overIndex, 0, movedTask);
+    
+            setTasks(newTasks);
+        }
+    };
 
     return (
         <DndContext
@@ -338,22 +385,37 @@ const Board: React.FC = () => {
                 {draggedTask ? (
                     <DragOverlayComponent task={draggedTask} />
                 ) : draggedStatus ? (
-                    <div className="w-full min-w-[270px] bg-gray-200 rounded-lg p-4">
-                        <h2 className="text-xl font-bold text-white capitalize">
-                            {draggedStatus.status.charAt(0).toUpperCase() + draggedStatus.status.slice(1)}
-                        </h2>
-                        <DropZone
-                            status={draggedStatus.status}
-                            tasks={draggedStatus.tasks}
-                            deleteTask={() => {}}
-                            handleUpdate={() => {}}
-                            isLoading={false}
-                            deleteStatus={() => {}}
+                    <SortableStatus
+                        key={draggedStatus.status}
+                        id={draggedStatus.status}
+                        status={draggedStatus.status}
+                        deleteStatus={deleteStatus}
+                        tasks={getTasksByStatus(draggedStatus.status)}
+                        isLoading={isLoading}
+                        deleteTask={deleteTask}
+                        handleUpdate={handleUpdate}
+                        addTaskInStatus={addTaskInStatus}
+                        moveStatus={moveStatus}
+                        moveTasks={moveTasks}
+                    />
+                ) : (
+                    hoveredStatus && (
+                        <SortableStatus
+                            key={hoveredStatus}
+                            id={hoveredStatus}
+                            status={hoveredStatus}
+                            deleteStatus={deleteStatus}
+                            tasks={getTasksByStatus(hoveredStatus)} 
+                            isLoading={isLoading}
+                            deleteTask={deleteTask}
+                            handleUpdate={handleUpdate}
+                            addTaskInStatus={addTaskInStatus}
+                            moveStatus={moveStatus}
+                            moveTasks={moveTasks}
                         />
-                    </div>
-                ) : null}
+                    )
+                )}
             </DragOverlay>
-
             <div className="flex flex-col">
                 <div className="flex flex-col justify-around sm:flex-row w-full">
                     <div className="flex justify-center w-full sm:w-auto">
@@ -363,13 +425,18 @@ const Board: React.FC = () => {
                 {isModalOpen && (
                     <Modal closeModal={closeModal}>
                         <div>
-                            <h2 className="text-xl font-bold mb-4">Add New Container</h2>
+                            <h2 className="text-xl text-gray-800 font-bold mb-4">Column Title</h2>
                             <input
                                 type="text"
                                 value={newStatusName}
                                 onChange={(e) => setNewStatusName(e.target.value)}
-                                className="p-2 border rounded"
+                                className="p-2 border rounded-lg"
                                 placeholder="Enter container name"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        addNewStatus()
+                                    }
+                                }}
                             />
                             <button
                                 onClick={addNewStatus}
@@ -381,37 +448,35 @@ const Board: React.FC = () => {
                         </div>
                     </Modal>
                 )}
-                <SortableContext items={statuses} strategy={verticalListSortingStrategy}>
-                    <div className="flex flex-wrap justify-center gap-4 py-3">
-                        {statuses.map((status) => (
-                            <SortableStatus
-                                key={status}
-                                id={status}
-                                status={status}
-                                deleteStatus={deleteStatus}
-                                tasks={getTasksByStatus(status)}
-                                isLoading={isLoading}
-                                deleteTask={deleteTask}
-                                handleUpdate={handleUpdate}
-                            />
-                        ))}
-                    </div>
-                </SortableContext>
-                <div className="flex mb-4 sm:justify-center md:justify-center mt-2 sm:mt-0">
-                    <div className="flex mr-2 ml-14 sm:ml-2 mt-2 sm:mt-4
-                            bg-gray-200 bg-opacity-20 text-white py-2 px-4 rounded-lg font-semibold
-                            hover:bg-opacity-50
-                            hover:border-2 hover:border-l-rose-300 hover:border-r-rose-300
-                            h-[45px]
-                            sm:w-auto sm:justify-center cursor-pointer gap-2 items-center min-w-[200px]">
+                <div className="flex h-[477px] max-sm:h-full ">
+                    <div className="overflow-x-auto scrollbar-thin w-full">
+                        <SortableContext items={statuses} strategy={verticalListSortingStrategy}>
 
-                        <button onClick={openModal}>
-                            Add Container
-                        </button>
-                        <button onClick={openModal}>
-                            <PlusIcon />
-                        </button>
+                            <div className="flex space-x-4 mx-4 py-3">
+                                {statuses.map((status) => (
+                                    <SortableStatus
+                                        key={status}
+                                        id={status}
+                                        status={status}
+                                        deleteStatus={deleteStatus}
+                                        tasks={getTasksByStatus(status)}
+                                        isLoading={isLoading}
+                                        deleteTask={deleteTask}
+                                        handleUpdate={handleUpdate}
+                                        addTaskInStatus={addTaskInStatus}
+                                        moveStatus={moveStatus}
+                                        moveTasks={moveTasks}
+                                    />
 
+                                ))}
+                                <div className="flex mb-4 sm:justify-center mt-2 sm:mt-0">
+                                    <div onClick={openModal} className="flex bg-gray-200 bg-opacity-20 text-white py-2 px-2 rounded-lg text-sm font-semibold hover:bg-opacity-50 hover:border-2 hover:border-l-rose-300 hover:border-r-rose-300 h-[45px] sm:w-auto sm:justify-center cursor-pointer gap-2 items-center min-w-[200px]">
+                                        <button><PlusIcon /></button>
+                                        <button>Add another list</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </SortableContext>
                     </div>
                 </div>
             </div>

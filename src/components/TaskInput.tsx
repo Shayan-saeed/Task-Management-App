@@ -38,7 +38,8 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
         p-4
         outline-none
         placeholder:text-white
-      placeholder:font-semibold
+        placeholder:font-normal
+        font-semibold
         "
               placeholder="Enter task"
             />
@@ -58,7 +59,7 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
             "
             >
               {statuses.map(status => (
-              <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+              <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1) || "untitled"}</option>
             ))}
             </select>
           </div>

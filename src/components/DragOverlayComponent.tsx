@@ -2,6 +2,7 @@ import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Task } from './types';
+import { border } from '@mui/system';
 
 interface DragOverlayProps {
     task: Task;
@@ -15,9 +16,16 @@ const DragOverlayComponent: React.FC<DragOverlayProps> = ({ task }) => {
     const style = {
         transform: CSS.Transform.toString(transform),
         transition: 'transform 250ms ease',
-        backgroundColor: 'white',
-        padding: '1rem',
+        margin: '0.5rem',
+        backgroundColor: '#172b4d',
+        minHeight: '20px',
+        color: '#9fadbc',
         borderRadius: '0.5rem',
+        fontSize: '0.875rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        width: '100%',
+        padding: '0.5rem',
         boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
     };
 
@@ -28,7 +36,7 @@ const DragOverlayComponent: React.FC<DragOverlayProps> = ({ task }) => {
             {...attributes}
             {...listeners}
         >
-            {task.content}
+            {task.content || "undefined"}
         </div>
     );
 };

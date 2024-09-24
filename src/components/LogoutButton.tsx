@@ -3,6 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from './authService';
 import { toast } from "react-toastify";
+import LogoutIcon from '../icons/LogoutIcon';
 
 const LogoutButton: React.FC = () => {
   const navigate = useNavigate();
@@ -23,7 +24,9 @@ const LogoutButton: React.FC = () => {
   };
 
   return (
-    <button onClick={handleLogout} className="p-2 bg-gray-200 bg-opacity-30 px-4 text-white rounded-lg hover:bg-opacity-60">
+    <button onClick={handleLogout} className="flex gap-2 items-center
+    text-[#172b4d] bg-[#dadde3] hover:bg-white focus:outline-none rounded text-sm px-3 py-1.5 text-center me-2 mb-2">
+      <LogoutIcon />
       Logout
     </button>
   );

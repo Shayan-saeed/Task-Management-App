@@ -37,10 +37,10 @@ const Login: React.FC = () => {
     <div className="flex items-center justify-center">
       <div className="bg-gray-800 bg-opacity-20 p-8 mt-20 rounded-lg shadow-lg w-full max-w-md">
         <h1 className='text-4xl font-bold text-center text-white mb-6'>Trello</h1>
-        <h1 className="text-2xl font-bold text-center text-gray-700 mb-6">Login to your account</h1>
+        <h1 className="text-2xl font-bold text-center text-white mb-6">Login to your account</h1>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-gray-700 font-medium mb-1">Email</label>
+            <label htmlFor="email" className="block text-white font-medium mb-1">Email</label>
             <input
               id="email"
               type="email"
@@ -52,7 +52,7 @@ const Login: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-gray-700 font-medium mb-1">Password</label>
+            <label htmlFor="password" className="block text-white font-medium mb-1">Password</label>
             <input
               id="password"
               type="password"
@@ -69,7 +69,7 @@ const Login: React.FC = () => {
           >
             Login
           </button>
-          <p className="text-center text-gray-700 mt-4">
+          <p className="text-center text-white mt-4">
             New user? <a href="/signup" className="text-blue-700 hover:underline">Register Here</a>
           </p>
         </form>

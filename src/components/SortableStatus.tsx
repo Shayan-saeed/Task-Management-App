@@ -1,8 +1,12 @@
 import DropZone from './DropZone';
 import { useSortable } from '@dnd-kit/sortable';
+import {useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities';
-import { Task } from './types'
+import { Task, TaskStatus } from './types'
 import DeleteIcon from '../icons/DeleteIcon';
+import PlusIcon from '../icons/PlusIcon';
+import clsx  from 'clsx'
+import { useState, useEffect } from 'react';
 
 interface SortableStatusProps {
     id: string;
@@ -12,55 +16,94 @@ interface SortableStatusProps {
     isLoading: boolean;
     deleteTask: (taskId: string) => Promise<void>;
     handleUpdate: (taskId: string, newContent: string) => Promise<void>;
+    addTaskInStatus: (status: TaskStatus) => Promise<void>;
+    moveStatus: (activeStatus: string, overStatus: string) => void;
+    moveTasks: (activeTask: string, overTask: string) => void;
 }
 
 
-const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks }) => {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks, addTaskInStatus, moveStatus, moveTasks }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({ id });
 
     const style = {
         transform: CSS.Transform.toString(transform),
-        transition,
+        transition: transition || 'transform 250ms ease',
+        opacity: isDragging ? 0.5 : 1
     };
+
+    const { isOver, setNodeRef: setDroppableRef } = useDroppable({
+        id
+    });
+
+    useEffect(() => {
+        if (isOver && active?.id !== id) {
+            moveStatus(active?.id as string, id);
+        }
+    }, [active, isOver]);
+    
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        addTaskInStatus(status);
+    }
 
     return (
         <div
             ref={setNodeRef}
             style={style}
-            className="w-full md:w-auto sm:w-auto flex flex-col items-center mb-4 pl-4 pt-2 pr-2
-            min-h-[250px] min-w-[270px] bg-gray-200 bg-opacity-20 rounded-lg shadow transition-transform duration-200 ease-in-out"
+            className={clsx("md:w-auto sm:w-auto flex flex-col mb-4 pl-4 pt-2 pr-2 max-h-[320px] min-w-[270px] bg-[#101204] rounded-xl shadow transition-transform duration-200 ease-in-out" ,
+                isDragging && 'opacity-80 scale-105 shadow-lg outline-2 outline-dashed outline-blue-500',
+                isOver && 'outline-2 outline-dashed outline-red-500'
+            )}
         >
-            <div className="flex items-center justify-between w-full">
-                <h2 className="text-xl font-bold text-white capitalize">
-                    {status.charAt(0).toUpperCase() + status.slice(1)}
-                </h2>
-                <div className='flex gap-4'>
+            <div className="flex items-center max-w-[270px] justify-between w-full pb-2 pt-2">
+                <div
+                    {...attributes}
+                    {...listeners}
+                    className="flex-grow cursor-grab outline-none"
+                    ref={setDroppableRef}
+                >
+                    <h2 className="text-lg font-bold text-[#b6c2cf] capitalize outline-none">
+                        {status.charAt(0).toUpperCase() + status.slice(1) || "Untitled"}
+                    </h2>
+                </div>
+                <div className="flex">
                     {!["to-do", "doing", "done"].includes(status) && (
                         <button
-                            onClick={() => deleteStatus(status)}
-                            className="ml-2 text-red-500"
+                            onClick={(e) => {
+                                e.stopPropagation(); 
+                                deleteStatus(status);
+                            }}
+                            className="ml-2 text-red-400"
                             title="Delete status"
                         >
                             <DeleteIcon />
                         </button>
                     )}
-                    <button {...attributes} {...listeners} className="p-2 cursor-grab" title="Drag Status">
-                        ☰
-                    </button>
                 </div>
             </div>
+
             <div className='w-full'>
-                <hr className="w-full bg-gray-400" />
+                <p className='text-[#b6c2cf] text-sm'>{tasks.length === 1 || tasks.length === 0 ? `${tasks.length} task matches filters` : `${tasks.length} tasks match filters`}</p>
             </div>
-            <div className='w-full'>
-            <DropZone
-                status={status}
-                deleteTask={deleteTask}
-                isLoading={isLoading}
-                handleUpdate={handleUpdate}
-                deleteStatus={deleteStatus}
-                tasks={tasks}
-            />
+            <div className='flex flex-col items-start justify-between h-full    '>
+                <div className='w-full max-h-[195px] overflow-x-auto scrollbar-thin'>
+                    <DropZone
+                        status={status}
+                        deleteTask={deleteTask}
+                        isLoading={isLoading}
+                        handleUpdate={handleUpdate}
+                        deleteStatus={deleteStatus}
+                        tasks={tasks}
+                        moveTasks={moveTasks}
+                    />
+                </div>
+                <div className="flex mb-4 w-full justify-between mt-2 sm:mt-0">
+                    <div onClick={handleSubmit} className="flex text-[#b6c2cf] text-sm h-[45px] sm:w-auto cursor-pointer gap-2 items-center min-w-[200px]">
+                        <button><PlusIcon /></button>
+                        <button>Add a task</button>
+                    </div>
+                </div>
             </div>
         </div>
     );

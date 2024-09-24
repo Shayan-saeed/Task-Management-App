@@ -37,7 +37,7 @@ const App: React.FC = () => {
     <div className="App
       m-auto
       
-      bg-gradient-to-r from-pink-600 via-purple-500 to-blue-400 min-h-screen font-sans 
+      bg-[#8f3f65] min-h-screen font-sans 
     ">
       {board && <Navbar currentUser={currentUser} />}
       <main>

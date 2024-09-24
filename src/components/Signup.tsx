@@ -18,10 +18,11 @@ const Signup: React.FC = () => {
       return;
     }
 
+     
     try {
       await signUp(email, password);
       navigate('/board');
-      toast.success("User R egistered Successfully!!", {
+      toast.success("User Registered Successfully!!", {
         position: "top-right",
       });
     } catch (error) {
@@ -36,11 +37,11 @@ const Signup: React.FC = () => {
     <div className="flex items-center justify-center">
       <div className="bg-gray-800 bg-opacity-20 p-8 mt-20 rounded-lg shadow-lg w-full max-w-md">
         <h1 className='text-4xl font-bold text-center text-white mb-6'>Trello</h1>
-        <h1 className="text-2xl font-bold text-center text-gray-700 mb-6">Register an account</h1>
+        <h1 className="text-2xl font-bold text-center text-white mb-6">Register an account</h1>
         <form onSubmit={handleSignup} className="space-y-4">
           {error && <p className="text-red-500">{error}</p>}
           <div>
-            <label htmlFor="email" className="block text-gray-700 font-medium mb-1">Email</label>
+            <label htmlFor="email" className="block text-white font-medium mb-1">Email</label>
             <input
               id="email"
               type="email"
@@ -52,7 +53,7 @@ const Signup: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-gray-700 font-medium mb-1">Password</label>
+            <label htmlFor="password" className="block text-white font-medium mb-1">Password</label>
             <input
               id="password"
               type="password"
@@ -64,7 +65,7 @@ const Signup: React.FC = () => {
             />
           </div>
           <div>
-            <label htmlFor="password" className="block text-gray-700 font-medium mb-1">Confirm Password</label>
+            <label htmlFor="password" className="block text-white font-medium mb-1">Confirm Password</label>
             <input
               id="password"
               type="password"
@@ -79,7 +80,7 @@ const Signup: React.FC = () => {
             className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50"
           >Sign Up</button>
         </form>
-        <p className="text-gray-700 mt-4 text-center">
+        <p className="text-white mt-4 text-center">
           Already have an account? <a href="/login" className="text-blue-700 hover:underline">Log In Here</a>
         </p>
       </div>

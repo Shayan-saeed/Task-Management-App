@@ -5,7 +5,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Nunito', 'sans-serif'], // or use 'Nunito' if you prefer
+        sans: ['"Haas Grot Text R Web"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
       },
     },
   },

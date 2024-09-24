@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { Task } from './types';
-import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from '@dnd-kit/utilities';
 import DeleteIcon from "../icons/DeleteIcon";
 import UpdateIcon from "../icons/UpdateIcon";
-import SaveIcon from "../icons/SaveIcon";
 import clsx from "clsx"
+import SaveIcon from "../icons/SaveIcon";
 
 interface TaskListProps {
     tasks: Task[];
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
+    moveTasks: (activeTask: string, overTask: string) => void;
 }
 
-const TaskList: React.FC<TaskListProps> = ({ tasks, deleteTask, handleUpdate }) => {
+const TaskList: React.FC<TaskListProps> = ({ tasks, deleteTask, handleUpdate, moveTasks }) => {
     return (
-        <div>
+        <div className="mr-2">
             {tasks.map((task) => (
-                <TaskItem key={task.id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} />
+                <TaskItem key={task.id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks}/>
             ))}
         </div>
     );
@@ -28,9 +29,10 @@ interface TaskItemProps {
     task: Task;
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
+    moveTasks: (activeTask: string, overTask: string) => void;
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) => {
+const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate, moveTasks }) => {
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [newContent, setNewContent] = useState<string>(task.content);
     const [isButtonClicked, setIsButtonClicked] = useState(false);
@@ -39,13 +41,13 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) =
         setNewContent(task.content);
     }, [task.content]);
 
-    const handleSaveUpdate = (e: React.MouseEvent) => {
+    const handleSaveUpdate = (e: React.KeyboardEvent) => {
         e.stopPropagation();
         handleUpdate(task.id, newContent);
         setIsEditing(false);
     };
 
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({
         id: task.id,
         disabled: isButtonClicked,
     });
@@ -57,6 +59,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) =
     const style = {
         transform: CSS.Transform.toString(transform),
         transition: transition || 'transform 250ms ease',
+        opacity: isDragging ? 0.5 : 1
     };
 
     const handleDelete = (e: React.MouseEvent) => {
@@ -65,8 +68,14 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) =
     };
 
     useEffect(() => {
+        if (isOver && active?.id !== task.id) {
+            moveTasks(active?.id as string, task.id);
+        }
+    }, [active, isOver]);
+
+    useEffect(() => {
         if (isButtonClicked) {
-            const timer = setTimeout(() => setIsButtonClicked(false), 300); // Adjust time as needed
+            const timer = setTimeout(() => setIsButtonClicked(false), 300); 
             return () => clearTimeout(timer);
         }
     }, [isButtonClicked]);
@@ -75,47 +84,62 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate }) =
         <div
             ref={setNodeRef}
             style={style}
-            className={clsx("p-4 my-2 bg-slate-50 text-black cursor-grab font-bold rounded flex justify-between w-full transition-transform duration-300 ease-in-out transform hover:shadow-lg hover:scale-105",
-                isDragging && 'opacity-80 scale-105 shadow-lg outline-2 outline-dashed outline-blue-500',
-                isOver && 'outline-2 outline-dashed outline-red-500'
+            className={clsx("p-2 my-2 bg-[#22272b] min-h-[20px] text-[#b6c2cf] cursor-grab rounded-lg text-sm flex justify-between w-full transition-transform duration-300 ease-in-out transform hover:shadow-lg hover:scale-105",
+                isDragging && 'opacity-80 scale-105 shadow-lg',
+                isOver && ''
             )}
             onClick={(e) => e.stopPropagation()}
         >
-            
+
             {isEditing ? (
                 <input
                     type="text"
                     value={newContent}
                     onChange={(e) => setNewContent(e.target.value)}
-                    className=" py-1 text-gray-700 font-medium
+                    className="py-1 text-[#b6c2cf] text-sm
                      outline-none
                      rounded
                      bg-gray-100 bg-opacity-20
                      border-none
-                     min-w-[20px]
-                     sm:w-auto 
+                     max-w-[250px]
+                     sm:w-auto
                      "
                     placeholder="Edit Task"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            if(!newContent.trim()) return;
+                            handleSaveUpdate(e);
+                            setIsEditing(false)
+                        }
+                    }}
+
                 />
             ) : (
                 <div
                     ref={setDroppableRef}
-                    className="flex-grow cursor-grab overflow-x-auto font-medium text-gray-900"
+                    className="flex-grow cursor-grab overflow-x-auto outline-none font-medium text-[#b6c2cf]"
                     {...attributes}
                     {...listeners}
                 >
                     {task.content}
                 </div>
-            )}
+            )}  
             <div className="flex gap-2">
                 {isEditing ? (
-                    <button
-                        className="hover:text-green-500 "
-                        onClick={handleSaveUpdate}
-                        disabled={!newContent.trim()}
-                    >
-                        <SaveIcon />
-                    </button>
+                    <> 
+                        <button
+                            className="hover:text-green-500"
+                            onClick={(e)=> {
+                                if(!newContent) return
+                                e.stopPropagation()
+                                setIsEditing(false)
+                                setIsButtonClicked(false)
+                                handleUpdate(task.id, newContent)
+                            }}
+                        >
+                            <SaveIcon />    
+                        </button>
+                    </>
                 ) : (
                     <>
                         <button
