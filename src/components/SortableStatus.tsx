@@ -6,7 +6,7 @@ import { Task, TaskStatus } from './types'
 import DeleteIcon from '../icons/DeleteIcon';
 import PlusIcon from '../icons/PlusIcon';
 import clsx  from 'clsx'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface SortableStatusProps {
     id: string;
@@ -24,6 +24,9 @@ interface SortableStatusProps {
 
 const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks, addTaskInStatus, moveStatus, moveTasks }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({ id });
+    const [isHolding, setIsHolding] = useState(false);
+    const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isDraggingRef = useRef(false);
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -34,6 +37,48 @@ const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask,
     const { isOver, setNodeRef: setDroppableRef } = useDroppable({
         id
     });
+
+    const handleTouchStart = () => {
+        holdTimeoutRef.current = setTimeout(() => {
+            setIsHolding(true);
+            if (listeners)
+                if (listeners.onDragStart) {
+                    listeners.onDragStart();
+                    isDraggingRef.current = true; // Mark as dragging
+                }
+        }, 300); // 300ms hold to initiate drag
+    };
+
+    const handleTouchEnd = () => {
+        if (holdTimeoutRef.current) {
+            clearTimeout(holdTimeoutRef.current);
+        }
+        if (isHolding) {
+            // If we were holding, reset the holding state
+            setIsHolding(false);
+        }
+        if (isDraggingRef.current) {
+            isDraggingRef.current = false;
+        }
+    };
+
+    const handleTouchMove = (event: React.TouchEvent) => {
+        // Prevent default scrolling behavior while dragging
+        event.preventDefault();
+        if (listeners)
+            if (isHolding && listeners.onDragMove) {
+                listeners.onDragStart(event); // Trigger the drag if holding
+            }
+    };
+
+    useEffect(() => {
+        // Clean up the timeout on component unmount
+        return () => {
+            if (holdTimeoutRef.current) {
+                clearTimeout(holdTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (isOver && active?.id !== id) {
@@ -51,7 +96,10 @@ const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask,
         <div
             ref={setNodeRef}
             style={style}
-            className={clsx("md:w-auto sm:w-auto flex flex-col mb-4 pl-4 pt-2 pr-2 max-h-[320px] min-w-[270px] bg-[#101204] rounded-xl shadow transition-transform duration-200 ease-in-out" ,
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
+            className={clsx("md:w-auto sm:w-auto flex flex-col mb-4 p-4 max-h-[320px] min-w-[270px] bg-[#101204] rounded-xl shadow transition-transform duration-200 ease-in-out" ,
                 isDragging && 'opacity-80 scale-105 shadow-lg outline-2 outline-dashed outline-blue-500',
                 isOver && 'outline-2 outline-dashed outline-red-500'
             )}
@@ -86,7 +134,7 @@ const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask,
             <div className='w-full'>
                 <p className='text-[#b6c2cf] text-sm'>{tasks.length === 1 || tasks.length === 0 ? `${tasks.length} task matches filters` : `${tasks.length} tasks match filters`}</p>
             </div>
-            <div className='flex flex-col items-start justify-between h-full    '>
+            <div className='flex flex-col items-start justify-between h-full'>
                 <div className='w-full max-h-[195px] overflow-x-auto scrollbar-thin'>
                     <DropZone
                         id={id}

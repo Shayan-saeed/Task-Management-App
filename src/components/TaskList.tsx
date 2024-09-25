@@ -20,7 +20,7 @@ const TaskList: React.FC<TaskListProps> = ({ id, tasks, deleteTask, handleUpdate
     return (
         <div className="mr-2">
             {tasks.map((task) => (
-                <TaskItem key={task.id} id={id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks}/>
+                <TaskItem key={task.id} id={id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks} />
             ))}
         </div>
     );
@@ -45,11 +45,11 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
     const handleTouchStart = () => {
         holdTimeoutRef.current = setTimeout(() => {
             setIsHolding(true);
-            if(listeners)
-            if (listeners.onDragStart) {
-                listeners.onDragStart();
-                isDraggingRef.current = true; // Mark as dragging
-            }
+            if (listeners)
+                if (listeners.onDragStart) {
+                    listeners.onDragStart();
+                    isDraggingRef.current = true; // Mark as dragging
+                }
         }, 300); // 300ms hold to initiate drag
     };
 
@@ -69,10 +69,10 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
     const handleTouchMove = (event: React.TouchEvent) => {
         // Prevent default scrolling behavior while dragging
         event.preventDefault();
-        if(listeners)
-        if (isHolding && listeners.onDragMove) {
-            listeners.onDragStart(event); // Trigger the drag if holding
-        }
+        if (listeners)
+            if (isHolding && listeners.onDragMove) {
+                listeners.onDragStart(event); // Trigger the drag if holding
+            }
     };
 
     useEffect(() => {
@@ -82,7 +82,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
                 clearTimeout(holdTimeoutRef.current);
             }
         };
-    }, []); 
+    }, []);
 
     useEffect(() => {
         setNewContent(task.content);
@@ -122,7 +122,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
 
     useEffect(() => {
         if (isButtonClicked) {
-            const timer = setTimeout(() => setIsButtonClicked(false), 300); 
+            const timer = setTimeout(() => setIsButtonClicked(false), 300);
             return () => clearTimeout(timer);
         }
     }, [isButtonClicked]);
@@ -136,6 +136,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
                 isOver && ''
             )}
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onTouchMove={handleTouchMove}
         >
 
             {isEditing ? (
@@ -155,7 +158,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
                     placeholder="Edit Task"
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                            if(!newContent.trim()) return;
+                            if (!newContent.trim()) return;
                             handleSaveUpdate(e);
                             setIsEditing(false)
                         }
@@ -168,31 +171,24 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
                     className="flex-grow cursor-grab overflow-x-auto outline-none font-medium text-[#b6c2cf]"
                     {...attributes}
                     {...listeners}
-                    onTouchStart={handleTouchStart}
-                    onTouchEnd={handleTouchEnd}
-                    onTouchMove={handleTouchMove}
-                    style={{
-                        opacity: isHolding ? 0.5 : 1,
-                        cursor: isHolding ? 'grabbing' : 'grab',
-                    }}
                 >
                     {task.content}
                 </div>
-            )}  
+            )}
             <div className="flex gap-2">
                 {isEditing ? (
-                    <> 
+                    <>
                         <button
                             className="hover:text-green-500"
-                            onClick={(e)=> {
-                                if(!newContent) return
+                            onClick={(e) => {
+                                if (!newContent) return
                                 e.stopPropagation()
                                 setIsEditing(false)
                                 setIsButtonClicked(false)
                                 handleUpdate(task.id, newContent)
                             }}
                         >
-                            <SaveIcon />    
+                            <SaveIcon />
                         </button>
                     </>
                 ) : (
