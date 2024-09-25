@@ -18,7 +18,7 @@ interface SortableStatusProps {
     handleUpdate: (taskId: string, newContent: string) => Promise<void>;
     addTaskInStatus: (status: TaskStatus) => Promise<void>;
     moveStatus: (activeStatus: string, overStatus: string) => void;
-    moveTasks: (activeTask: string, overTask: string) => void;
+    moveTasks: (activeTaskId: string, newStatus: string) => void;
 }
 
 
@@ -89,6 +89,7 @@ const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask,
             <div className='flex flex-col items-start justify-between h-full    '>
                 <div className='w-full max-h-[195px] overflow-x-auto scrollbar-thin'>
                     <DropZone
+                        id={id}
                         status={status}
                         deleteTask={deleteTask}
                         isLoading={isLoading}

@@ -19,7 +19,6 @@ import DragOverlayComponent from './DragOverlayComponent';
 import Modal from './Modal';
 import PlusIcon from "../icons/PlusIcon";
 import SortableStatus from "./SortableStatus";
-import DropZone from "./DropZone";
 import { ref, set, get, onValue, remove, update } from "firebase/database";
 
 const defaultStatuses: TaskStatus[] = ["to-do", "doing", "done"];
@@ -301,6 +300,48 @@ const Board: React.FC = () => {
         setDraggedTask(null)
     };
 
+    const moveTasks = async (activeTaskId: string, newStatus: string) => {
+
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const tasksSnapshot = await get(ref(database, `tasks/${user.uid}/${newStatus}`));
+        const newOrderIndex = tasksSnapshot.val() ? Object.keys(tasksSnapshot.val()).length : 0;
+
+        await update(ref(database, `tasks/${user.uid}/${activeTaskId}`), {
+            status: newStatus,
+            orderIndex: newOrderIndex,
+            updatedAt: new Date().toISOString(),
+        });
+    };
+
+    const getTasksByStatus = (status: TaskStatus) => tasks.filter(task => task.status === status);
+
+    const moveStatus = async (activeStatus: string, overStatus: string) => {
+        const newStatuses = [...statuses];
+        const activeIndex = newStatuses.findIndex(status => status === activeStatus);
+        const overIndex = newStatuses.findIndex(status => status === overStatus);
+
+        if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
+            const [movedStatus] = newStatuses.splice(activeIndex, 1);
+            newStatuses.splice(overIndex, 0, movedStatus);
+
+            const user = auth.currentUser;
+            if (!user) return;
+
+            try {
+
+                await Promise.all(newStatuses.map((status, index) =>
+                    update(ref(database, `statuses/${user.uid}/${status}`), { orderIndex: index })
+                ));
+
+                setStatuses(newStatuses);
+            } catch (error) {
+                console.error("Error swapping status order:", error);
+            }
+        }
+    };
+
     const handleStatusDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
@@ -337,46 +378,6 @@ const Board: React.FC = () => {
         setDraggedTask(null);
     };
 
-    const getTasksByStatus = (status: TaskStatus) => tasks.filter(task => task.status === status);
-
-    const moveStatus =  async (activeStatus: string, overStatus: string) => {
-        const newStatuses = [...statuses];
-        const activeIndex = newStatuses.findIndex(status => status === activeStatus);
-        const overIndex = newStatuses.findIndex(status => status === overStatus);
-
-        if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-            const [movedStatus] = newStatuses.splice(activeIndex, 1);
-            newStatuses.splice(overIndex, 0, movedStatus);
-
-            const user = auth.currentUser;
-            if (!user) return;
-
-            try {
-
-                await Promise.all(newStatuses.map((status, index) =>
-                    update(ref(database, `statuses/${user.uid}/${status}`), { orderIndex: index })
-                ));
-
-                setStatuses(newStatuses);
-            } catch (error) {
-                console.error("Error swapping status order:", error);
-            }
-        }
-    };
-
-    const moveTasks = (activeTask: string, overTask: string) => {
-        const newTasks = [...tasks];
-        const activeIndex = newTasks.findIndex(task => task.id === activeTask);
-        const overIndex = newTasks.findIndex(task => task.id === overTask);
-
-        if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-            const [movedTask] = newTasks.splice(activeIndex, 1);
-            newTasks.splice(overIndex, 0, movedTask);
-
-            setTasks(newTasks);
-        }
-    };
-
     return (
         <DndContext
             onDragEnd={event => {
@@ -410,23 +411,8 @@ const Board: React.FC = () => {
                         moveStatus={moveStatus}
                         moveTasks={moveTasks}
                     />
-                ) : (
-                    hoveredStatus && (
-                        <SortableStatus
-                            key={hoveredStatus}
-                            id={hoveredStatus}
-                            status={hoveredStatus}
-                            deleteStatus={deleteStatus}
-                            tasks={getTasksByStatus(hoveredStatus)}
-                            isLoading={isLoading}
-                            deleteTask={deleteTask}
-                            handleUpdate={handleUpdate}
-                            addTaskInStatus={addTaskInStatus}
-                            moveStatus={moveStatus}
-                            moveTasks={moveTasks}
-                        />
-                    )
-                )}
+                ) : null
+                }
             </DragOverlay>
             <div className="flex flex-col">
                 <div className="flex flex-col justify-around sm:flex-row w-full">

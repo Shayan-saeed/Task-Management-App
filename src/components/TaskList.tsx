@@ -9,30 +9,32 @@ import clsx from "clsx"
 import SaveIcon from "../icons/SaveIcon";
 
 interface TaskListProps {
+    id: string;
     tasks: Task[];
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
-    moveTasks: (activeTask: string, overTask: string) => void;
+    moveTasks: (activeTaskId: string, newStatus: string) => void;
 }
 
-const TaskList: React.FC<TaskListProps> = ({ tasks, deleteTask, handleUpdate, moveTasks }) => {
+const TaskList: React.FC<TaskListProps> = ({ id, tasks, deleteTask, handleUpdate, moveTasks }) => {
     return (
         <div className="mr-2">
             {tasks.map((task) => (
-                <TaskItem key={task.id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks}/>
+                <TaskItem key={task.id} id={id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks}/>
             ))}
         </div>
     );
 };
 
 interface TaskItemProps {
+    id: string;
     task: Task;
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
-    moveTasks: (activeTask: string, overTask: string) => void;
+    moveTasks: (activeTaskId: string, newStatus: string) => void;
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate, moveTasks }) => {
+const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate, moveTasks }) => {
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [newContent, setNewContent] = useState<string>(task.content);
     const [isButtonClicked, setIsButtonClicked] = useState(false);
@@ -69,9 +71,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate, mov
 
     useEffect(() => {
         if (isOver && active?.id !== task.id) {
-            moveTasks(active?.id as string, task.id);
+            moveTasks(active?.id as string, id);
         }
-    }, [active, isOver]);
+    }, [active, isOver, moveTasks]);
 
     useEffect(() => {
         if (isButtonClicked) {
@@ -99,6 +101,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, deleteTask, handleUpdate, mov
                     className="py-1 text-[#b6c2cf] text-sm
                      outline-none
                      rounded
+                     p-1
                      bg-gray-100 bg-opacity-20
                      border-none
                      max-w-[250px]
