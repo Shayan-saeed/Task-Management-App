@@ -40,10 +40,16 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
     const [isButtonClicked, setIsButtonClicked] = useState(false);
     const [isHolding, setIsHolding] = useState(false);
     const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isDraggingRef = useRef(false);
 
     const handleTouchStart = () => {
         holdTimeoutRef.current = setTimeout(() => {
             setIsHolding(true);
+            if(listeners)
+            if (listeners.onDragStart) {
+                listeners.onDragStart();
+                isDraggingRef.current = true; // Mark as dragging
+            }
         }, 300); // 300ms hold to initiate drag
     };
 
@@ -55,12 +61,16 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
             // If we were holding, reset the holding state
             setIsHolding(false);
         }
+        if (isDraggingRef.current) {
+            isDraggingRef.current = false;
+        }
     };
 
     const handleTouchMove = (event: React.TouchEvent) => {
         // Prevent default scrolling behavior while dragging
         event.preventDefault();
-        if (isHolding && listeners) {
+        if(listeners)
+        if (isHolding && listeners.onDragMove) {
             listeners.onDragStart(event); // Trigger the drag if holding
         }
     };
@@ -72,7 +82,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
                 clearTimeout(holdTimeoutRef.current);
             }
         };
-    }, []);
+    }, []); 
 
     useEffect(() => {
         setNewContent(task.content);
@@ -161,6 +171,10 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
                     onTouchStart={handleTouchStart}
                     onTouchEnd={handleTouchEnd}
                     onTouchMove={handleTouchMove}
+                    style={{
+                        opacity: isHolding ? 0.5 : 1,
+                        cursor: isHolding ? 'grabbing' : 'grab',
+                    }}
                 >
                     {task.content}
                 </div>
