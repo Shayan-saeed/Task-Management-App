@@ -36,7 +36,10 @@ const Login: React.FC = () => {
   return (
     <div className="flex items-center justify-center">
       <div className="bg-gray-800 bg-opacity-20 p-8 mt-20 rounded-lg shadow-lg w-full max-w-md">
-        <h1 className='text-4xl font-bold text-center text-white mb-6'>Trello</h1>
+        <div className='flex flex-row justify-center items-center mb-6 mt-2 gap-3'>
+        <img src="https://cdn2.iconfinder.com/data/icons/social-icons-33/128/Trello-512.png" alt="trello-logo" className='w-[30px] h-[30px]' />
+        <h1 className='text-4xl font-bold text-white'>Trello</h1>
+        </div>
         <h1 className="text-2xl font-bold text-center text-white mb-6">Login to your account</h1>
         <form onSubmit={handleLogin} className="space-y-4">
           <div>

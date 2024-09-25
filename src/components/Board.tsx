@@ -179,15 +179,19 @@ const Board: React.FC = () => {
 
         try {
 
-            const tasksToDeleteSnapshot = await get(ref(database, `tasks/${user.uid}/${statusToDelete}`));
-            const tasksToDelete = tasksToDeleteSnapshot.val() || {};
+            const tasksSnapshot = await get(ref(database, `tasks/${user.uid}`));
+            const allTasks = tasksSnapshot.val() || {};
 
+            console.log("Tasks to delete:", allTasks);
 
-            const deleteTasksPromises = Object.keys(tasksToDelete).map(taskId =>
-                remove(ref(database, `tasks/${user.uid}/${taskId}`))
-            );
-            await Promise.all(deleteTasksPromises);
+            const tasksToDelete = Object.keys(allTasks).filter(taskId => allTasks[taskId].status === statusToDelete);
 
+            if (tasksToDelete.length > 0) {
+                const deleteTasksPromises = tasksToDelete.map(taskId =>
+                    remove(ref(database, `tasks/${user.uid}/${taskId}`))
+                );
+                await Promise.all(deleteTasksPromises);
+            }
 
             await remove(ref(database, `statuses/${user.uid}/${statusToDelete}`));
 
@@ -304,6 +308,10 @@ const Board: React.FC = () => {
 
         const user = auth.currentUser;
         if (!user) return;
+
+        const activeTaskSnapshot = await get(ref(database, `tasks/${user.uid}/${activeTaskId}`));
+        const activeTask = activeTaskSnapshot.val();
+        if (!activeTask) return;
 
         const tasksSnapshot = await get(ref(database, `tasks/${user.uid}/${newStatus}`));
         const newOrderIndex = tasksSnapshot.val() ? Object.keys(tasksSnapshot.val()).length : 0;

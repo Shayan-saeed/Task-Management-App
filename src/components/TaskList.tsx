@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Task } from './types';
 import { useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
@@ -38,6 +38,41 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [newContent, setNewContent] = useState<string>(task.content);
     const [isButtonClicked, setIsButtonClicked] = useState(false);
+    const [isHolding, setIsHolding] = useState(false);
+    const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleTouchStart = () => {
+        holdTimeoutRef.current = setTimeout(() => {
+            setIsHolding(true);
+        }, 300); // 300ms hold to initiate drag
+    };
+
+    const handleTouchEnd = () => {
+        if (holdTimeoutRef.current) {
+            clearTimeout(holdTimeoutRef.current);
+        }
+        if (isHolding) {
+            // If we were holding, reset the holding state
+            setIsHolding(false);
+        }
+    };
+
+    const handleTouchMove = (event: React.TouchEvent) => {
+        // Prevent default scrolling behavior while dragging
+        event.preventDefault();
+        if (isHolding && listeners) {
+            listeners.onDragStart(event); // Trigger the drag if holding
+        }
+    };
+
+    useEffect(() => {
+        // Clean up the timeout on component unmount
+        return () => {
+            if (holdTimeoutRef.current) {
+                clearTimeout(holdTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         setNewContent(task.content);
@@ -123,6 +158,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
                     className="flex-grow cursor-grab overflow-x-auto outline-none font-medium text-[#b6c2cf]"
                     {...attributes}
                     {...listeners}
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                    onTouchMove={handleTouchMove}
                 >
                     {task.content}
                 </div>
