@@ -38,52 +38,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [newContent, setNewContent] = useState<string>(task.content);
     const [isButtonClicked, setIsButtonClicked] = useState(false);
-    const [isHolding, setIsHolding] = useState(false);
-    const holdTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isDraggingRef = useRef(false);
-
-    const handleTouchStart = () => {
-        holdTimeoutRef.current = setTimeout(() => {
-            setIsHolding(true);
-            if (listeners)
-                if (listeners.onDragStart) {
-                    listeners.onDragStart();
-                    isDraggingRef.current = true; // Mark as dragging
-                }
-        }, 300); // 300ms hold to initiate drag
-    };
-
-    const handleTouchEnd = () => {
-        if (holdTimeoutRef.current) {
-            clearTimeout(holdTimeoutRef.current);
-        }
-        if (isHolding) {
-            // If we were holding, reset the holding state
-            setIsHolding(false);
-        }
-        if (isDraggingRef.current) {
-            isDraggingRef.current = false;
-        }
-    };
-
-    const handleTouchMove = (event: React.TouchEvent) => {
-        // Prevent default scrolling behavior while dragging
-        event.preventDefault();
-        if (listeners)
-            if (isHolding && listeners.onDragMove) {
-                listeners.onDragStart(event); // Trigger the drag if holding
-            }
-    };
-
-    useEffect(() => {
-        // Clean up the timeout on component unmount
-        return () => {
-            if (holdTimeoutRef.current) {
-                clearTimeout(holdTimeoutRef.current);
-            }
-        };
-    }, []);
-
+    
     useEffect(() => {
         setNewContent(task.content);
     }, [task.content]);
@@ -115,10 +70,10 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
     };
 
     useEffect(() => {
-        if (isOver && active?.id !== task.id) {
+        if (isOver && active?.id !== id) {
             moveTasks(active?.id as string, id);
         }
-    }, [active, isOver, moveTasks]);
+    }, [active, isOver, moveTasks, id]);
 
     useEffect(() => {
         if (isButtonClicked) {
@@ -136,9 +91,6 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
                 isOver && ''
             )}
             onClick={(e) => e.stopPropagation()}
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onTouchMove={handleTouchMove}
         >
 
             {isEditing ? (

@@ -4,6 +4,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import TaskList from './TaskList';
 import { Task, TaskStatus } from './types';
 import DeleteIcon from "../icons/DeleteIcon";
+import { useSortable } from '@dnd-kit/sortable';
 
 export interface DropZoneProps {
     id: string;

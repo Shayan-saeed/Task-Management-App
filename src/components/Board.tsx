@@ -338,7 +338,6 @@ const Board: React.FC = () => {
             if (!user) return;
 
             try {
-
                 await Promise.all(newStatuses.map((status, index) =>
                     update(ref(database, `statuses/${user.uid}/${status}`), { orderIndex: index })
                 ));
@@ -405,7 +404,8 @@ const Board: React.FC = () => {
             <DragOverlay>
                 {draggedTask ? (
                     <DragOverlayComponent task={draggedTask} />
-                ) : draggedStatus ? (
+                ) : null}
+                {draggedStatus ? (
                     <SortableStatus
                         key={draggedStatus.status}
                         id={draggedStatus.status}
