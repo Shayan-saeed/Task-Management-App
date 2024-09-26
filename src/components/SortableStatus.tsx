@@ -6,7 +6,7 @@ import { Task, TaskStatus } from './types'
 import DeleteIcon from '../icons/DeleteIcon';
 import PlusIcon from '../icons/PlusIcon';
 import clsx from 'clsx'
-import { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useCallback } from 'react';
 
 interface SortableStatusProps {
     id: string;
@@ -22,7 +22,7 @@ interface SortableStatusProps {
 }
 
 
-const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks, addTaskInStatus, moveStatus, moveTasks }) => {
+const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks, addTaskInStatus, moveStatus, moveTasks }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({ id});
 
     const style = {
@@ -39,13 +39,13 @@ const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask,
         if (isOver && active?.id !== id) {
             moveStatus(active?.id as string, id);
         }
-    }, [active, isOver]);
+    }, [active, isOver, id]);
 
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
         addTaskInStatus(status);
-    }
+    }, [addTaskInStatus, status]);
 
     return (
         <div
@@ -56,7 +56,7 @@ const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask,
                 isOver && 'outline-2 outline-dashed outline-red-500'
             )}
         >
-            <div className="flex items-center max-w-[270px] justify-between w-full pb-2 pt-2">
+            <div className="flex items-center max-w-[270px] justify-between w-full pb-2">
                 <div
                     {...attributes}
                     {...listeners}
@@ -98,7 +98,7 @@ const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask,
                         moveTasks={moveTasks}
                     />
                 </div>
-                <div className="flex mb-4 w-full justify-between mt-2 sm:mt-0">
+                <div className="flex mb-4 w-full justify-between my-2 sm:mt-0">
                     <div onClick={handleSubmit} className="flex text-[#b6c2cf] text-sm h-[45px] sm:w-auto cursor-pointer gap-2 items-center min-w-[200px]">
                         <button><PlusIcon /></button>
                         <button>Add a task</button>
@@ -107,6 +107,6 @@ const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask,
             </div>
         </div>
     );
-};
+});
 
 export default SortableStatus;

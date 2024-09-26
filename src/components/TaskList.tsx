@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Task } from './types';
 import { useDroppable } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
@@ -34,20 +34,20 @@ interface TaskItemProps {
     moveTasks: (activeTaskId: string, newStatus: string) => void;
 }
 
-const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate, moveTasks }) => {
+const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, handleUpdate, moveTasks }) => {
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [newContent, setNewContent] = useState<string>(task.content);
     const [isButtonClicked, setIsButtonClicked] = useState(false);
-    
+
     useEffect(() => {
         setNewContent(task.content);
     }, [task.content]);
 
-    const handleSaveUpdate = (e: React.KeyboardEvent) => {
+    const handleSaveUpdate = useCallback((e: React.KeyboardEvent) => {
         e.stopPropagation();
         handleUpdate(task.id, newContent);
         setIsEditing(false);
-    };
+    }, [handleUpdate, newContent, task.id]);
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({
         id: task.id,
@@ -64,10 +64,10 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
         opacity: isDragging ? 0.5 : 1
     };
 
-    const handleDelete = (e: React.MouseEvent) => {
+    const handleDelete = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         deleteTask(task.id);
-    };
+    }, [deleteTask, task.id]);
 
     useEffect(() => {
         if (isOver && active?.id !== id) {
@@ -171,8 +171,6 @@ const TaskItem: React.FC<TaskItemProps> = ({ id, task, deleteTask, handleUpdate,
             </div>
         </div>
     );
-};
-
-
+});
 
 export default TaskList;

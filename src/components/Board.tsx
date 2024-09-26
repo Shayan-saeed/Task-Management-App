@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { auth, database } from './firebaseConfig';
 import TaskInput from "./TaskInput";
 import { Task, TaskStatus } from './types';
@@ -13,7 +13,7 @@ import {
     useSensor,
     useSensors
 } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { toast } from "react-toastify";
 import DragOverlayComponent from './DragOverlayComponent';
 import Modal from './Modal';
@@ -36,9 +36,6 @@ const Board: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [newStatusName, setNewStatusName] = useState<string>("");
     const [draggedStatus, setDraggedStatus] = useState<DraggedStatus | null>(null);
-    const [isDraggingItem, setIsDraggingItem] = useState<boolean | null>(false);
-    const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
-    const [emptyColumn, setEmptyColumn] = useState<boolean | false>(false)
 
     
     useEffect(() => {
@@ -94,7 +91,7 @@ const Board: React.FC = () => {
         };
     }, []);
 
-    const addNewStatus = async () => {
+    const addNewStatus = useCallback(async () => {
         if (statuses.includes(newStatusName.trim())) {
             toast.error("This status already exists!");
             return;
@@ -116,7 +113,7 @@ const Board: React.FC = () => {
         } else {
             toast.error("Unexpected behavior");
         }
-    };
+    },[newStatusName, statuses]);
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
@@ -144,9 +141,9 @@ const Board: React.FC = () => {
         } catch (error) {
             console.error("Error adding task:", error);
         }
-    }
+    };
 
-    const addTask = async (content: string, status: TaskStatus) => {
+    const addTask = useCallback(async (content: string, status: TaskStatus) => {
         try {
             const user = auth.currentUser;
             if (!user) return;
@@ -154,6 +151,7 @@ const Board: React.FC = () => {
             const tasksInStatus = tasks.filter(task => task.status === status);
             const orderIndex = tasksInStatus.length;
 
+            const taskId = `${status}-${Date.now()}`;
             const taskData = {
                 userId: user.uid,
                 content,
@@ -162,14 +160,14 @@ const Board: React.FC = () => {
                 orderIndex
             };
 
-            const taskRef = ref(database, `tasks/${user.uid}/${content}`);
+            const taskRef = ref(database, `tasks/${user.uid}/${taskId}`);
             await set(taskRef, taskData);
         } catch (error) {
             console.error("Error adding task:", error);
         }
-    };
+    }, [tasks]);
 
-    const deleteStatus = async (statusToDelete: TaskStatus) => {
+    const deleteStatus = useCallback(async (statusToDelete: TaskStatus) => {
         if (defaultStatuses.includes(statusToDelete)) {
             toast.error("Cannot delete default statuses!");
             return;
@@ -203,7 +201,7 @@ const Board: React.FC = () => {
             console.error("Error deleting status:", error);
             toast.error("Error deleting status");
         }
-    };
+    },[statuses]);
 
 
     const deleteTask = async (taskId: string) => {
@@ -237,8 +235,7 @@ const Board: React.FC = () => {
         }
     };
 
-    const handleDragStart = (event: DragStartEvent) => {
-        setIsDraggingItem(true);
+    const handleDragStart = useCallback((event: DragStartEvent) => {
         const activeId = event.active.id.toString();
 
         const activeTask = tasks.find(task => task.id === activeId);
@@ -253,11 +250,10 @@ const Board: React.FC = () => {
                 setDraggedTask(null);
             }
         }
-    };
+    },[tasks, statuses]);
 
 
-    const handleDragEnd = async (event: DragEndEvent) => {
-        setIsDraggingItem(false)
+    const handleDragEnd = useCallback(async (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over) return;
 
@@ -273,7 +269,7 @@ const Board: React.FC = () => {
         if (!user) return;
 
         if (isMovingToEmptyColumn || activeTask.status !== overTask?.status) {
-            setEmptyColumn(true)
+           
             const newStatus: TaskStatus = isMovingToEmptyColumn ? over.id.toString() : overTask.status;
             const tasksSnapshot = await get(ref(database, `tasks/${user.uid}/${newStatus}`));
             const newOrderIndex = tasksSnapshot.val() ? Object.keys(tasksSnapshot.val()).length : 0;
@@ -306,7 +302,7 @@ const Board: React.FC = () => {
         }
         setDraggedStatus(null)
         setDraggedTask(null)
-    };
+    },[tasks]);
 
     const moveTasks = async (activeTaskId: string, newStatus: string) => {
 
@@ -358,11 +354,9 @@ const Board: React.FC = () => {
         }
     };
 
-    const handleStatusDragEnd = async (event: DragEndEvent) => {
+    const handleStatusDragEnd = useCallback(async (event: DragEndEvent) => {
         const { active, over } = event;
         if (!over || active.id === over.id) return;
-
-        setHoveredStatus(over.id.toString());
 
         const newStatuses = [...statuses];
         const activeIndex = newStatuses.findIndex(status => status === active.id.toString());
@@ -389,10 +383,9 @@ const Board: React.FC = () => {
                 console.error("Error swapping status order:", error);
             }
         }
-        setHoveredStatus(null);
         setDraggedStatus(null);
         setDraggedTask(null);
-    };
+    },[statuses]);
 
     return (
         <DndContext

@@ -26,6 +26,8 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
         <div className="flex rounded-lg">
           <div className="relative w-full">
             <input
+              id="content"
+              name="content"
               type="text"
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -47,6 +49,8 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
           <div className="w-[1px] bg-gray-300 h-[45px]" />
           <div className="relative">
             <select
+              id="dropdown"
+              name="dropdown"
               value={status}
               onChange={(e) => setStatus(e.target.value as TaskStatus)}
               className="border-l-0

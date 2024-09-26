@@ -1,5 +1,4 @@
-// src/components/Login.tsx
-import React, { ReactEventHandler, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from './authService';
 import { toast, Bounce } from "react-toastify";
@@ -46,6 +45,7 @@ const Login: React.FC = () => {
             <label htmlFor="email" className="block text-white font-medium mb-1">Email</label>
             <input
               id="email"
+              name='email'
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Routes, Route, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "./components/firebaseConfig";
@@ -12,9 +12,10 @@ import Navbar from "./components/Navbar";
 const App: React.FC = () => {
   const location = useLocation();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const loginSignup = location.pathname === '/login' || location.pathname === '/signup' 
-  const board = location.pathname === '/board'
   const navigate = useNavigate();
+
+  const loginSignup = useMemo(() => location.pathname === '/login' || location.pathname === '/signup', [location.pathname]);
+  const board = useMemo(() => location.pathname === '/board', [location.pathname]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -30,9 +31,9 @@ const App: React.FC = () => {
         }
       }
     });
-
+    console.log(unsubscribe)
     return () => unsubscribe();
-  }, [location, navigate])
+  }, [loginSignup, location.pathname, navigate])
   return (
     <div className="App
       m-auto
