@@ -1,11 +1,8 @@
-import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import TaskList from './TaskList';
 import { Task, TaskStatus } from './types';
-import DeleteIcon from "../icons/DeleteIcon";
-import { useSortable } from '@dnd-kit/sortable';
-
+import React, {useEffect} from 'react';
 export interface DropZoneProps {
     id: string;
     status: TaskStatus;
@@ -18,10 +15,10 @@ export interface DropZoneProps {
 }
 
 const DropZone: React.FC<DropZoneProps> = ({ id, status, tasks, deleteTask, isLoading, handleUpdate, deleteStatus, moveTasks }) => {
-    const { setNodeRef } = useDroppable({
+    const { setNodeRef, isOver } = useDroppable({
         id: status,
     });
-
+    
     return (
         <div
             className="flex-1 mt-4"
@@ -32,8 +29,8 @@ const DropZone: React.FC<DropZoneProps> = ({ id, status, tasks, deleteTask, isLo
                     Loading...
                 </div>
             ) : tasks.length === 0 ? (
-                <div className="text-center text-[#9fadbc] font-medium py-4">
-                    No tasks available
+                <div className="text-center text-[#9fadbc] text-sm pr-4 py-4">
+                    No tasks available.
                 </div>
             ) : (
                 <div className='scrollbar-thin'>

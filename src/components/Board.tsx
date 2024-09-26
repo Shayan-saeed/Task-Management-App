@@ -38,8 +38,9 @@ const Board: React.FC = () => {
     const [draggedStatus, setDraggedStatus] = useState<DraggedStatus | null>(null);
     const [isDraggingItem, setIsDraggingItem] = useState<boolean | null>(false);
     const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
+    const [emptyColumn, setEmptyColumn] = useState<boolean | false>(false)
 
-
+    
     useEffect(() => {
         const user = auth.currentUser;
         if (!user) return;
@@ -256,7 +257,7 @@ const Board: React.FC = () => {
 
 
     const handleDragEnd = async (event: DragEndEvent) => {
-        setIsDraggingItem(null)
+        setIsDraggingItem(false)
         const { active, over } = event;
         if (!over) return;
 
@@ -272,6 +273,7 @@ const Board: React.FC = () => {
         if (!user) return;
 
         if (isMovingToEmptyColumn || activeTask.status !== overTask?.status) {
+            setEmptyColumn(true)
             const newStatus: TaskStatus = isMovingToEmptyColumn ? over.id.toString() : overTask.status;
             const tasksSnapshot = await get(ref(database, `tasks/${user.uid}/${newStatus}`));
             const newOrderIndex = tasksSnapshot.val() ? Object.keys(tasksSnapshot.val()).length : 0;
@@ -282,6 +284,8 @@ const Board: React.FC = () => {
                 orderIndex: newOrderIndex,
                 updatedAt: new Date().toISOString(),
             });
+
+            setDraggedTask(null);
         } else {
 
             const reorderedTasks = [...tasks];
@@ -313,11 +317,16 @@ const Board: React.FC = () => {
         const activeTask = activeTaskSnapshot.val();
         if (!activeTask) return;
 
-        const tasksSnapshot = await get(ref(database, `tasks/${user.uid}/${newStatus}`));
+        const isMovingToEmptyColumn = !(await get(ref(database, `tasks/${user.uid}/${newStatus}`))).val();
+        const currentStatus = activeTask.status;
+
+        const newStatusToSet = isMovingToEmptyColumn ? newStatus : currentStatus;
+
+        const tasksSnapshot = await get(ref(database, `tasks/${user.uid}/${newStatusToSet}`));
         const newOrderIndex = tasksSnapshot.val() ? Object.keys(tasksSnapshot.val()).length : 0;
 
         await update(ref(database, `tasks/${user.uid}/${activeTaskId}`), {
-            status: newStatus,
+            status: newStatusToSet,
             orderIndex: newOrderIndex,
             updatedAt: new Date().toISOString(),
         });
@@ -401,7 +410,7 @@ const Board: React.FC = () => {
             )}
             collisionDetection={closestCorners}
         >
-            <DragOverlay>
+            <DragOverlay dropAnimation={null}>
                 {draggedTask ? (
                     <DragOverlayComponent task={draggedTask} />
                 ) : null}
@@ -473,7 +482,6 @@ const Board: React.FC = () => {
                                         moveStatus={moveStatus}
                                         moveTasks={moveTasks}
                                     />
-
                                 ))}
                                 <div className="flex mb-4 sm:justify-center mt-2 sm:mt-0">
                                     <div onClick={openModal} className="flex bg-gray-200 bg-opacity-20 text-white py-2 px-2 rounded-lg text-sm font-semibold hover:bg-opacity-50 hover:border-2 hover:border-l-rose-300 hover:border-r-rose-300 h-[45px] sm:w-auto sm:justify-center cursor-pointer gap-2 items-center min-w-[200px]">

@@ -23,7 +23,7 @@ interface SortableStatusProps {
 
 
 const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks, addTaskInStatus, moveStatus, moveTasks }) => {
-    const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({ id });
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({ id});
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -32,7 +32,7 @@ const SortableStatus: React.FC<SortableStatusProps> = ({ id, status, deleteTask,
     };
 
     const { isOver, setNodeRef: setDroppableRef } = useDroppable({
-        id
+        id: status
     });
 
     useEffect(() => {
