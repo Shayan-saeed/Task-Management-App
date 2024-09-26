@@ -20,6 +20,7 @@ import Modal from './Modal';
 import PlusIcon from "../icons/PlusIcon";
 import SortableStatus from "./SortableStatus";
 import { ref, set, get, onValue, remove, update } from "firebase/database";
+import { TextField } from "@mui/material";
 
 const defaultStatuses: TaskStatus[] = ["to-do", "doing", "done"];
 
@@ -37,7 +38,7 @@ const Board: React.FC = () => {
     const [newStatusName, setNewStatusName] = useState<string>("");
     const [draggedStatus, setDraggedStatus] = useState<DraggedStatus | null>(null);
 
-    
+
     useEffect(() => {
         const user = auth.currentUser;
         if (!user) return;
@@ -113,7 +114,7 @@ const Board: React.FC = () => {
         } else {
             toast.error("Unexpected behavior");
         }
-    },[newStatusName, statuses]);
+    }, [newStatusName, statuses]);
 
     const openModal = () => setIsModalOpen(true);
     const closeModal = () => setIsModalOpen(false);
@@ -181,8 +182,6 @@ const Board: React.FC = () => {
             const tasksSnapshot = await get(ref(database, `tasks/${user.uid}`));
             const allTasks = tasksSnapshot.val() || {};
 
-            console.log("Tasks to delete:", allTasks);
-
             const tasksToDelete = Object.keys(allTasks).filter(taskId => allTasks[taskId].status === statusToDelete);
 
             if (tasksToDelete.length > 0) {
@@ -201,7 +200,7 @@ const Board: React.FC = () => {
             console.error("Error deleting status:", error);
             toast.error("Error deleting status");
         }
-    },[statuses]);
+    }, [statuses]);
 
 
     const deleteTask = async (taskId: string) => {
@@ -250,7 +249,7 @@ const Board: React.FC = () => {
                 setDraggedTask(null);
             }
         }
-    },[tasks, statuses]);
+    }, [tasks, statuses]);
 
 
     const handleDragEnd = useCallback(async (event: DragEndEvent) => {
@@ -269,7 +268,7 @@ const Board: React.FC = () => {
         if (!user) return;
 
         if (isMovingToEmptyColumn || activeTask.status !== overTask?.status) {
-           
+
             const newStatus: TaskStatus = isMovingToEmptyColumn ? over.id.toString() : overTask.status;
             const tasksSnapshot = await get(ref(database, `tasks/${user.uid}/${newStatus}`));
             const newOrderIndex = tasksSnapshot.val() ? Object.keys(tasksSnapshot.val()).length : 0;
@@ -302,7 +301,7 @@ const Board: React.FC = () => {
         }
         setDraggedStatus(null)
         setDraggedTask(null)
-    },[tasks]);
+    }, [tasks]);
 
     const moveTasks = async (activeTaskId: string, newStatus: string) => {
 
@@ -385,7 +384,7 @@ const Board: React.FC = () => {
         }
         setDraggedStatus(null);
         setDraggedTask(null);
-    },[statuses]);
+    }, [statuses]);
 
     return (
         <DndContext
@@ -432,27 +431,34 @@ const Board: React.FC = () => {
                 </div>
                 {isModalOpen && (
                     <Modal closeModal={closeModal}>
-                        <div>
+                        <div className="flex flex-col justify-center items-center">
                             <h2 className="text-xl text-gray-800 font-bold mb-4">Column Title</h2>
-                            <input
+                            <TextField
+                                label="Title"
+                                variant="standard"
                                 type="text"
                                 value={newStatusName}
                                 onChange={(e) => setNewStatusName(e.target.value)}
                                 className="p-2 border rounded-lg"
-                                placeholder="Enter container name"
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                         addNewStatus()
                                     }
                                 }}
                             />
-                            <button
-                                onClick={addNewStatus}
-                                className="ml-2 p-2 bg-green-500 text-white rounded"
-                                disabled={!newStatusName.trim()}
-                            >
-                                Add
-                            </button>
+                            <div className="p-3  mt-2 text-center space-x-4 md:block">
+                                <button
+                                    onClick={addNewStatus}
+                                    disabled={!newStatusName.trim()}
+                                    className="mb-2 md:mb-0 bg-white px-5 py-2 text-sm shadow-sm font-medium tracking-wider border text-gray-600 rounded-full hover:shadow-lg hover:bg-gray-100">
+                                    Add
+                                </button>
+                                <button
+                                    onClick={closeModal}
+                                    className="mb-2 md:mb-0 bg-red-500 border border-red-500 px-5 py-2 text-sm shadow-sm font-medium tracking-wider text-white rounded-full hover:shadow-lg hover:bg-red-600">
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </Modal>
                 )}
@@ -487,7 +493,7 @@ const Board: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </DndContext>
+        </DndContext >
     );
 };
 

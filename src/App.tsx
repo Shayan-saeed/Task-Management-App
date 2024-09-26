@@ -31,9 +31,9 @@ const App: React.FC = () => {
         }
       }
     });
-    console.log(unsubscribe)
     return () => unsubscribe();
   }, [loginSignup, location.pathname, navigate])
+  
   return (
     <div className="App
       m-auto

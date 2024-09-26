@@ -32,17 +32,17 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               className="h-[45px] 
-        w-full sm:w-auto min-w-[150px]
-        bg-gray-100 bg-opacity-50
-        cursor-pointor
-        rounded-l-lg
-        text-white
-        p-4
-        outline-none
-        placeholder:text-white
-        placeholder:font-normal
-        font-semibold
-        "
+              w-full sm:w-auto min-w-[150px]
+            bg-gray-100 bg-opacity-50
+              cursor-pointor
+              rounded-l-lg
+            text-white
+              p-4
+              outline-none
+            placeholder:text-white
+              placeholder:font-normal
+              font-semibold
+              "
               placeholder="Enter task"
             />
           </div>
@@ -63,8 +63,8 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
             "
             >
               {statuses.map(status => (
-              <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1) || "untitled"}</option>
-            ))}
+                <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1) || "untitled"}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -72,6 +72,8 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
           type="submit"
           className="p-2 ml-0 sm:ml-2 mt-2 sm:mt-0
         bg-gray-100 bg-opacity-20 text-white py-2 px-4 rounded-lg font-semibold
+        hover:shadow-lg
+        
         hover:bg-red-100
         hover:bg-opacity-50
         h-[45px]
