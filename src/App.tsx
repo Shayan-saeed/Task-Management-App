@@ -7,6 +7,7 @@ import Signup from "./components/Signup";
 import Login from "./components/Login";
 import { ToastContainer } from "react-toastify";
 import Navbar from "./components/Navbar";
+import { SpeedInsights } from "@vercel/speed-insights/react"
 
 
 const App: React.FC = () => {
@@ -49,6 +50,7 @@ const App: React.FC = () => {
           <Route path="/login" element={<Login />} />
         </Routes>
         <ToastContainer />
+        <SpeedInsights />
       </main>
     </div>
   );
