@@ -39,6 +39,8 @@ const Board: React.FC = () => {
     const [draggedStatus, setDraggedStatus] = useState<DraggedStatus | null>(null);
     const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState<boolean>(false); 
+    const [selectedTaskContent, setSelectedTaskContent] = useState<string>("");
+    const [selectedTaskStatus, setSelectedTaskStatus] = useState<string>("");
 
 
     useEffect(() => {
@@ -128,12 +130,15 @@ const Board: React.FC = () => {
         setButtonRect(null);
     };
 
-    const openTaskModal = () => {
+    const openTaskModal = (taskContent: string, TaskStatus: string) => {
+        setSelectedTaskContent(taskContent);
+        setSelectedTaskStatus(TaskStatus);
         setIsTaskModalOpen(true);
     }
 
     const closeTaskModal = () => {
         setIsTaskModalOpen(false);
+        setSelectedTaskContent("");
     };
 
     const addTaskInStatus = async (status: TaskStatus) => {
@@ -484,7 +489,7 @@ const Board: React.FC = () => {
                     </Modal>
                 )}
                 {isTaskModalOpen && (
-                    <TaskModal closeTaskModal={closeTaskModal} tasks={tasks} />
+                    <TaskModal closeTaskModal={closeTaskModal} tasks={tasks} taskContent={selectedTaskContent} TaskStatus={selectedTaskStatus} />
                 )}
                 <div className="flex h-[477px] max-sm:h-full ">
                     <div className="overflow-x-auto scrollbar-thin w-full">

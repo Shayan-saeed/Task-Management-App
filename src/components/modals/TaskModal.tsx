@@ -1,13 +1,15 @@
 import React, { useState, useMemo, useRef } from "react";
 import JoditEditor from "jodit-react";
-import { Task } from "../types";
+import { Task, TaskStatus } from '../types';
 
 interface TaskModalProps {
     closeTaskModal: () => void;
     tasks: Task[];
+    taskContent: string;
+    TaskStatus: string;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks }) => {
+const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks, taskContent, TaskStatus}) => {
     const editor = useRef(null);
     const [content, setContent] = useState("");
 
@@ -63,9 +65,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks }) => {
                         </span>
 
                         <div className="flex-1">
-                            <h2 className="tracking-wide text-xl font-semibold">Kickoff meeting</h2>
+                            <h2 className="tracking-wide text-xl font-semibold">{taskContent}</h2>
                             <p className="text-sm text-[#b6c2cf]">
-                                In list <span className="underline">To-do</span>
+                                In list <span className="underline">{TaskStatus}</span>
                             </p>
                         </div>
                     </div>

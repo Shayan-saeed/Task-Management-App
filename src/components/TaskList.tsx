@@ -14,7 +14,7 @@ interface TaskListProps {
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
     moveTasks: (activeTaskId: string, newStatus: string) => void;
-    openTaskModal: () => void;
+    openTaskModal: (taskContent: string, TaskStatus: string) => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({ id, tasks, deleteTask, handleUpdate, moveTasks, openTaskModal }) => {
@@ -33,12 +33,16 @@ interface TaskItemProps {
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
     moveTasks: (activeTaskId: string, newStatus: string) => void;
-    openTaskModal: () => void;
+    openTaskModal: (taskContent: string, TaskStatus: string) => void;
 }
 
 const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, handleUpdate, moveTasks, openTaskModal }) => {
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [newContent, setNewContent] = useState<string>(task.content);
+
+    const handleOpenTaskModal = () => {
+        openTaskModal(task.content, task.status); // Pass the task content here
+    };
 
     useEffect(() => {
         setNewContent(task.content);
@@ -76,7 +80,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
 
     const handleTaskClick = (e: React.MouseEvent) => {
         if (!isEditing) {
-            openTaskModal(); 
+            openTaskModal(task.content, task.status); 
         }
     };
 
@@ -131,6 +135,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
                         {...attributes}
                         {...listeners}
                         onMouseDown={(e) => e.stopPropagation()}
+                        onClick={handleOpenTaskModal}
                     >
                         {task.content}
                     </div>
