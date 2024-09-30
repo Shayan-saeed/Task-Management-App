@@ -8,6 +8,7 @@ import Login from "./components/Login";
 import { ToastContainer } from "react-toastify";
 import Navbar from "./components/Navbar";
 import { SpeedInsights } from "@vercel/speed-insights/react"
+import TaskModal from "./components/modals/TaskModal";
 
 
 const App: React.FC = () => {

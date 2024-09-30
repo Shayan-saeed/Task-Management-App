@@ -14,13 +14,14 @@ interface TaskListProps {
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
     moveTasks: (activeTaskId: string, newStatus: string) => void;
+    openTaskModal: () => void;
 }
 
-const TaskList: React.FC<TaskListProps> = ({ id, tasks, deleteTask, handleUpdate, moveTasks }) => {
+const TaskList: React.FC<TaskListProps> = ({ id, tasks, deleteTask, handleUpdate, moveTasks, openTaskModal}) => {
     return (
         <div className="mr-2">
             {tasks.map((task) => (
-                <TaskItem key={task.id} id={id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks} />
+                <TaskItem key={task.id} id={id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks} openTaskModal={openTaskModal}/>
             ))}
         </div>
     );
@@ -32,12 +33,15 @@ interface TaskItemProps {
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
     moveTasks: (activeTaskId: string, newStatus: string) => void;
+    openTaskModal: () => void;
 }
 
-const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, handleUpdate, moveTasks }) => {
+const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, handleUpdate, moveTasks, openTaskModal }) => {
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [newContent, setNewContent] = useState<string>(task.content);
     const [isButtonClicked, setIsButtonClicked] = useState(false);
+    const [isTaskDragging, setIsTaskDragging] = useState(false);
+    const [clickTimeout, setClickTimeout] = useState<number | null>(null);
 
     useEffect(() => {
         setNewContent(task.content);
@@ -82,15 +86,41 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
         }
     }, [isButtonClicked]);
 
+    const handleMouseUp = (e: React.MouseEvent) => {
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            setClickTimeout(null);
+        }
+        openTaskModal();
+    };
+
+    const handleMouseDown = () => {
+        setIsTaskDragging(true); 
+        const timeoutId = window.setTimeout(() => {
+            setIsTaskDragging(false); 
+        }, 100); 
+        setClickTimeout(timeoutId);
+    };
+
+    const handleDragEnd = () => {
+        setIsTaskDragging(false);
+        if (clickTimeout) {
+            clearTimeout(clickTimeout);
+            setClickTimeout(null);
+        }
+    };
+
     return (
         <div
             ref={setNodeRef}
             style={style}
-            className={clsx("p-2 my-2 bg-[#22272b] min-h-[20px] text-[#b6c2cf] cursor-grab rounded-lg text-sm flex justify-between w-full transition-transform duration-300 ease-in-out transform hover:shadow-lg hover:scale-105",
+            className={clsx("p-2 my-2 bg-[#22272b] min-h-[20px] text-[#b6c2cf] cursor-pointer rounded-lg text-sm flex justify-between w-full transition-transform duration-300 ease-in-out transform hover:shadow-lg",
                 isDragging && 'opacity-80 scale-105 shadow-lg',
                 isOver && ''
             )}
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={handleMouseDown} 
+            onMouseUp={handleMouseUp} 
+            onDragEnd={handleDragEnd}
         >
 
             {isEditing ? (
@@ -120,11 +150,14 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
             ) : (
                 <div
                     ref={setDroppableRef}
-                    className="flex-grow cursor-grab overflow-x-auto outline-none font-medium text-[#b6c2cf]"
+                    className="flex-grow cursor-pointer overflow-x-auto outline-none font-medium text-[#b6c2cf]"
+                >
+                    <div
                     {...attributes}
                     {...listeners}
-                >
-                    {task.content}
+                    >
+                        {task.content}
+                    </div>
                 </div>
             )}
             <div className="flex gap-2">

@@ -26,7 +26,7 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
 
   useEffect(() => {
     const newWidth = calculateWidth(status.charAt(0).toUpperCase() + status.slice(1) || "untitled");
-    setSelectWidth(newWidth + 50); // Add padding for better appearance
+    setSelectWidth(newWidth + 50);
   }, [status]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,7 +41,7 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
     <div>
       <form onSubmit={handleSubmit} className="mb-4 w-auto flex flex-col sm:flex-row sm:items-center">
         <div className="flex w-auto rounded-lg">
-          <div className="relative w-full">
+          <div className="relative w-auto">
             <input
               id="content"
               name="content"
@@ -67,7 +67,7 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
           <div className="relative w-auto">
             <div className="flex">
               <select
-                id="dropdown"
+                id="dropdown "
                 name="dropdown"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as TaskStatus)}

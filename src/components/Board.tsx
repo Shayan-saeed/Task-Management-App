@@ -16,11 +16,11 @@ import {
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { toast } from "react-toastify";
 import DragOverlayComponent from './DragOverlayComponent';
-import Modal from './Modal';
+import Modal from './modals/Modal';
 import PlusIcon from "../icons/PlusIcon";
 import SortableStatus from "./SortableStatus";
 import { ref, set, get, onValue, remove, update } from "firebase/database";
-import { TextField } from "@mui/material";
+import TaskModal from "./modals/TaskModal";
 
 const defaultStatuses: TaskStatus[] = ["to-do", "doing", "done"];
 
@@ -37,6 +37,8 @@ const Board: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [newStatusName, setNewStatusName] = useState<string>("");
     const [draggedStatus, setDraggedStatus] = useState<DraggedStatus | null>(null);
+    const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState<boolean>(false); 
 
 
     useEffect(() => {
@@ -116,8 +118,23 @@ const Board: React.FC = () => {
         }
     }, [newStatusName, statuses]);
 
-    const openModal = () => setIsModalOpen(true);
-    const closeModal = () => setIsModalOpen(false);
+    const openModal = (rect: DOMRect) => {
+        setButtonRect(rect);
+        setIsModalOpen(true);
+    }
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setButtonRect(null);
+    };
+
+    const openTaskModal = () => {
+        setIsTaskModalOpen(true);
+    }
+
+    const closeTaskModal = () => {
+        setIsTaskModalOpen(false);
+    };
 
     const addTaskInStatus = async (status: TaskStatus) => {
         try {
@@ -396,10 +413,10 @@ const Board: React.FC = () => {
                 }
             }}
             onDragStart={handleDragStart}
-            sensors={useSensors(
-                useSensor(PointerSensor),
-                useSensor(KeyboardSensor)
-            )}
+            // sensors={useSensors(
+            //     useSensor(PointerSensor),
+            //     useSensor(KeyboardSensor)
+            // )}
             collisionDetection={closestCorners}
         >
             <DragOverlay dropAnimation={null}>
@@ -419,48 +436,56 @@ const Board: React.FC = () => {
                         addTaskInStatus={addTaskInStatus}
                         moveStatus={moveStatus}
                         moveTasks={moveTasks}
+                        openTaskModal={openTaskModal}
                     />
                 ) : null
                 }
             </DragOverlay>
-            <div className="flex flex-col">
+            <div className="flex flex-col overflow-y-auto">
                 <div className="flex flex-col justify-around sm:flex-row w-full">
                     <div className="flex justify-center w-full sm:w-auto">
                         <TaskInput addTask={addTask} statuses={statuses} />
                     </div>
                 </div>
-                {isModalOpen && (
-                    <Modal closeModal={closeModal}>
-                        <div className="flex flex-col justify-center items-center">
-                            <h2 className="text-xl text-gray-800 font-bold mb-4">Column Title</h2>
-                            <TextField
-                                label="Title"
-                                variant="standard"
+                {isModalOpen && buttonRect && (
+                    <Modal closeModal={closeModal} rect={buttonRect}>
+                        <div className="flex flex-col">
+                            <input
                                 type="text"
                                 value={newStatusName}
                                 onChange={(e) => setNewStatusName(e.target.value)}
-                                className="p-2 border rounded-lg"
+                                className="p-2.5 border rounded-md text-[#b6c2cf] bg-[#22272b] h-[32px] min-w-[256px] w-full text-sm focus:ring-blue-500 focus:border-blue-300 outline-none border-gray-500"
+                                autoFocus
+                                placeholder="Enter list name..."
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
-                                        addNewStatus()
+                                        addNewStatus();
                                     }
                                 }}
                             />
-                            <div className="p-3  mt-2 text-center space-x-4 md:block">
+                            <div className="pt-2 pb-2 md:block inline-flex flex-grow items-center justify-center space-x-2">
                                 <button
                                     onClick={addNewStatus}
                                     disabled={!newStatusName.trim()}
-                                    className="mb-2 md:mb-0 bg-white px-5 py-2 text-sm shadow-sm font-medium tracking-wider border text-gray-600 rounded-full hover:shadow-lg hover:bg-gray-100">
-                                    Add
+                                    className="bg-[#579dff] hover:bg-blue-400 font-bold rounded-md h-[32px] cursor-pointer w-[72.53px] text-sm text-[#2d4361]"
+                                >
+                                    Add list
                                 </button>
                                 <button
                                     onClick={closeModal}
-                                    className="mb-2 md:mb-0 bg-red-500 border border-red-500 px-5 py-2 text-sm shadow-sm font-medium tracking-wider text-white rounded-full hover:shadow-lg hover:bg-red-600">
-                                    Close
+                                    className="text-[#b6c2cf] h-[32px] w-[32px] text-center rounded-sm p-1 pt-3"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                    </svg>
+
                                 </button>
                             </div>
                         </div>
                     </Modal>
+                )}
+                {isTaskModalOpen && (
+                    <TaskModal closeTaskModal={closeTaskModal} />
                 )}
                 <div className="flex h-[477px] max-sm:h-full ">
                     <div className="overflow-x-auto scrollbar-thin w-full">
@@ -480,10 +505,17 @@ const Board: React.FC = () => {
                                         addTaskInStatus={addTaskInStatus}
                                         moveStatus={moveStatus}
                                         moveTasks={moveTasks}
+                                        openTaskModal={openTaskModal}
                                     />
                                 ))}
                                 <div className="flex mb-4 sm:justify-center mt-2 sm:mt-0">
-                                    <div onClick={openModal} className="flex bg-gray-200 bg-opacity-20 text-white py-2 px-2 rounded-lg text-sm font-semibold hover:bg-opacity-50 hover:border-2 hover:border-l-rose-300 hover:border-r-rose-300 h-[45px] sm:w-auto sm:justify-center cursor-pointer gap-2 items-center min-w-[200px]">
+                                    <div
+                                        onClick={(e) => {
+                                            const rect = e.currentTarget.getBoundingClientRect();
+                                            openModal(rect);
+                                        }}
+                                        className="flex bg-gray-200 bg-opacity-20 text-white py-2 px-2 rounded-xl text-sm font-semibold hover:bg-opacity-50 hover:border-2 hover:border-l-rose-300 hover:border-r-rose-300 h-[45px] sm:w-auto sm:justify-center cursor-pointer gap-2 items-center min-w-[270px]"
+                                    >
                                         <button><PlusIcon /></button>
                                         <button>Add another list</button>
                                     </div>

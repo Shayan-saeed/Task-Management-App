@@ -19,10 +19,11 @@ interface SortableStatusProps {
     addTaskInStatus: (status: TaskStatus) => Promise<void>;
     moveStatus: (activeStatus: string, overStatus: string) => void;
     moveTasks: (activeTaskId: string, newStatus: string) => void;
+    openTaskModal: () => void;
 }
 
 
-const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks, addTaskInStatus, moveStatus, moveTasks }) => {
+const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks, addTaskInStatus, moveStatus, moveTasks, openTaskModal}) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({ id});
 
     const style = {
@@ -96,6 +97,7 @@ const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, 
                         deleteStatus={deleteStatus}
                         tasks={tasks}
                         moveTasks={moveTasks}
+                        openTaskModal={openTaskModal}
                     />
                 </div>
                 <div className="flex mb-4 w-full justify-between my-2 sm:mt-0">

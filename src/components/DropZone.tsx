@@ -12,9 +12,10 @@ export interface DropZoneProps {
     isLoading: boolean;
     deleteStatus: (statusToDelete: TaskStatus) => void;
     moveTasks: (activeTaskId: string, newStatus: string) => void;
+    openTaskModal: () => void;
 }
 
-const DropZone: React.FC<DropZoneProps> = ({ id, status, tasks, deleteTask, isLoading, handleUpdate, deleteStatus, moveTasks }) => {
+const DropZone: React.FC<DropZoneProps> = ({ id, status, tasks, deleteTask, isLoading, handleUpdate, deleteStatus, moveTasks, openTaskModal }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: status,
     });
@@ -48,7 +49,7 @@ const DropZone: React.FC<DropZoneProps> = ({ id, status, tasks, deleteTask, isLo
             ) : (
                 <div className='scrollbar-thin'>
                     <SortableContext items={tasks.map(task => task.id)} strategy={verticalListSortingStrategy}>
-                        <TaskList id={id} tasks={tasks} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks} />
+                        <TaskList id={id} tasks={tasks} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks} openTaskModal={openTaskModal} />
                     </SortableContext>
                 </div>
             )}
