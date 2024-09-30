@@ -46,7 +46,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks }) => {
     };
 
     return (
-        <div className="fixed inset-0 overflow-y-auto scrollbar-thin flex items-center pt-12 pb-12 justify-center bg-gray-800 bg-opacity-75 z-50"
+        <div className="fixed inset-0 overflow-y-auto scrollbar-thin flex items-center pt-12 pb-12 justify-center bg-black bg-opacity-75 z-50"
             onClick={closeTaskModal}
         >
             <div
