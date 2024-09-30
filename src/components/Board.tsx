@@ -413,10 +413,10 @@ const Board: React.FC = () => {
                 }
             }}
             onDragStart={handleDragStart}
-            // sensors={useSensors(
-            //     useSensor(PointerSensor),
-            //     useSensor(KeyboardSensor)
-            // )}
+            sensors={useSensors(
+                useSensor(PointerSensor),
+                useSensor(KeyboardSensor)
+            )}
             collisionDetection={closestCorners}
         >
             <DragOverlay dropAnimation={null}>
@@ -478,14 +478,13 @@ const Board: React.FC = () => {
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
                                     </svg>
-
                                 </button>
                             </div>
                         </div>
                     </Modal>
                 )}
                 {isTaskModalOpen && (
-                    <TaskModal closeTaskModal={closeTaskModal} />
+                    <TaskModal closeTaskModal={closeTaskModal} tasks={tasks} />
                 )}
                 <div className="flex h-[477px] max-sm:h-full ">
                     <div className="overflow-x-auto scrollbar-thin w-full">
