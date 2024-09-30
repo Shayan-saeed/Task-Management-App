@@ -17,11 +17,11 @@ interface TaskListProps {
     openTaskModal: () => void;
 }
 
-const TaskList: React.FC<TaskListProps> = ({ id, tasks, deleteTask, handleUpdate, moveTasks, openTaskModal}) => {
+const TaskList: React.FC<TaskListProps> = ({ id, tasks, deleteTask, handleUpdate, moveTasks, openTaskModal }) => {
     return (
         <div className="mr-2">
             {tasks.map((task) => (
-                <TaskItem key={task.id} id={id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks} openTaskModal={openTaskModal}/>
+                <TaskItem key={task.id} id={id} task={task} deleteTask={deleteTask} handleUpdate={handleUpdate} moveTasks={moveTasks} openTaskModal={openTaskModal} />
             ))}
         </div>
     );
@@ -39,9 +39,6 @@ interface TaskItemProps {
 const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, handleUpdate, moveTasks, openTaskModal }) => {
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [newContent, setNewContent] = useState<string>(task.content);
-    const [isButtonClicked, setIsButtonClicked] = useState(false);
-    const [isTaskDragging, setIsTaskDragging] = useState(false);
-    const [clickTimeout, setClickTimeout] = useState<number | null>(null);
 
     useEffect(() => {
         setNewContent(task.content);
@@ -55,7 +52,6 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
 
     const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({
         id: task.id,
-        disabled: isButtonClicked,
     });
 
     const { isOver, setNodeRef: setDroppableRef } = useDroppable({
@@ -73,42 +69,22 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
         deleteTask(task.id);
     }, [deleteTask, task.id]);
 
+    const handleUpdateClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsEditing(true);
+    };
+
+    const handleTaskClick = (e: React.MouseEvent) => {
+        if (!isEditing) {
+            openTaskModal(); 
+        }
+    };
+
     useEffect(() => {
         if (isOver && active?.id !== id) {
             moveTasks(active?.id as string, id);
         }
     }, [active, isOver, moveTasks, id]);
-
-    useEffect(() => {
-        if (isButtonClicked) {
-            const timer = setTimeout(() => setIsButtonClicked(false), 300);
-            return () => clearTimeout(timer);
-        }
-    }, [isButtonClicked]);
-
-    const handleMouseUp = (e: React.MouseEvent) => {
-        if (clickTimeout) {
-            clearTimeout(clickTimeout);
-            setClickTimeout(null);
-        }
-        openTaskModal();
-    };
-
-    const handleMouseDown = () => {
-        setIsTaskDragging(true); 
-        const timeoutId = window.setTimeout(() => {
-            setIsTaskDragging(false); 
-        }, 100); 
-        setClickTimeout(timeoutId);
-    };
-
-    const handleDragEnd = () => {
-        setIsTaskDragging(false);
-        if (clickTimeout) {
-            clearTimeout(clickTimeout);
-            setClickTimeout(null);
-        }
-    };
 
     return (
         <div
@@ -118,9 +94,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
                 isDragging && 'opacity-80 scale-105 shadow-lg',
                 isOver && ''
             )}
-            onMouseDown={handleMouseDown} 
-            onMouseUp={handleMouseUp} 
-            onDragEnd={handleDragEnd}
+            onClick={handleTaskClick}
         >
 
             {isEditing ? (
@@ -145,6 +119,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
                             setIsEditing(false)
                         }
                     }}
+                    onClick={(e) => e.stopPropagation()} 
 
                 />
             ) : (
@@ -153,8 +128,9 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
                     className="flex-grow cursor-pointer overflow-x-auto outline-none font-medium text-[#b6c2cf]"
                 >
                     <div
-                    {...attributes}
-                    {...listeners}
+                        {...attributes}
+                        {...listeners}
+                        onMouseDown={(e) => e.stopPropagation()}
                     >
                         {task.content}
                     </div>
@@ -162,41 +138,23 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
             )}
             <div className="flex gap-2">
                 {isEditing ? (
-                    <>
-                        <button
-                            className="hover:text-green-500"
-                            onClick={(e) => {
-                                if (!newContent) return
-                                e.stopPropagation()
-                                setIsEditing(false)
-                                setIsButtonClicked(false)
-                                handleUpdate(task.id, newContent)
-                            }}
-                        >
-                            <SaveIcon />
-                        </button>
-                    </>
+                    <button
+                        className="hover:text-green-500"
+                        onClick={(e) => {
+                            if (!newContent) return;
+                            e.stopPropagation();
+                            setIsEditing(false);
+                            handleUpdate(task.id, newContent);
+                        }}
+                    >
+                        <SaveIcon />
+                    </button>
                 ) : (
                     <>
-                        <button
-                            className="hover:text-green-500"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsEditing(true)
-                                console.log("Update icon pressed")
-                                setIsButtonClicked(true);
-                            }}
-                        >
+                        <button className="hover:text-green-500" onClick={handleUpdateClick}>
                             <UpdateIcon />
                         </button>
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(e);
-                                setIsButtonClicked(true);
-                            }}
-                            className="hover:text-red-500"
-                        >
+                        <button onClick={handleDelete} className="hover:text-red-500">
                             <DeleteIcon />
                         </button>
                     </>
