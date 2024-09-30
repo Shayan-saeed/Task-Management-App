@@ -90,7 +90,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
         <div
             ref={setNodeRef}
             style={style}
-            className={clsx("p-2 my-2 bg-[#22272b] min-h-[20px] text-[#b6c2cf] cursor-pointer rounded-lg text-sm flex justify-between w-full transition-transform duration-300 ease-in-out transform hover:shadow-lg",
+            className={clsx("p-2 py-4 my-2 bg-[#22272b] min-h-[20px] text-[#b6c2cf] cursor-pointer rounded-lg text-sm flex justify-between w-full transition-transform duration-300 ease-in-out transform hover:shadow-lg",
                 isDragging && 'opacity-80 scale-105 shadow-lg',
                 isOver && ''
             )}
