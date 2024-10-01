@@ -14,7 +14,7 @@ interface TaskListProps {
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
     moveTasks: (activeTaskId: string, newStatus: string) => void;
-    openTaskModal: (taskContent: string, TaskStatus: string) => void;
+    openTaskModal: (task: Task) => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({ id, tasks, deleteTask, handleUpdate, moveTasks, openTaskModal }) => {
@@ -33,7 +33,7 @@ interface TaskItemProps {
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void
     moveTasks: (activeTaskId: string, newStatus: string) => void;
-    openTaskModal: (taskContent: string, TaskStatus: string) => void;
+    openTaskModal: (task: Task) => void;
 }
 
 const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, handleUpdate, moveTasks, openTaskModal }) => {
@@ -41,7 +41,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
     const [newContent, setNewContent] = useState<string>(task.content);
 
     const handleOpenTaskModal = () => {
-        openTaskModal(task.content, task.status); // Pass the task content here
+        openTaskModal(task);
     };
 
     useEffect(() => {
@@ -80,7 +80,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
 
     const handleTaskClick = (e: React.MouseEvent) => {
         if (!isEditing) {
-            openTaskModal(task.content, task.status); 
+            openTaskModal(task);
         }
     };
 
@@ -103,6 +103,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
 
             {isEditing ? (
                 <input
+                    autoFocus
                     type="text"
                     value={newContent}
                     onChange={(e) => setNewContent(e.target.value)}
@@ -123,7 +124,7 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
                             setIsEditing(false)
                         }
                     }}
-                    onClick={(e) => e.stopPropagation()} 
+                    onClick={(e) => e.stopPropagation()}
 
                 />
             ) : (
@@ -132,12 +133,20 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
                     className="flex-grow cursor-pointer overflow-x-auto outline-none font-medium text-[#b6c2cf]"
                 >
                     <div
-                        {...attributes}
-                        {...listeners}
                         onMouseDown={(e) => e.stopPropagation()}
                         onClick={handleOpenTaskModal}
                     >
-                        {task.content}
+                        <div
+                        {...attributes}
+                        {...listeners}
+                        >
+                            {task.content}
+                        </div>
+                        
+                        {/* {task.description === "Add a more detailed description..." || null ? null : <span title="This task has a description"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
+                        </svg></span>
+                        } */}
                     </div>
                 </div>
             )}

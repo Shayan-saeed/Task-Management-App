@@ -19,7 +19,7 @@ interface SortableStatusProps {
     addTaskInStatus: (status: TaskStatus) => Promise<void>;
     moveStatus: (activeStatus: string, overStatus: string) => void;
     moveTasks: (activeTaskId: string, newStatus: string) => void;
-    openTaskModal: (taskContent: string, TaskStatus: string) => void;
+    openTaskModal: (task: Task) => void;
 }
 
 

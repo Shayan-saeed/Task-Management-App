@@ -39,29 +39,28 @@ code {
   border: #b6c2cf !important;
 }
 
-
-.jodit-toolbar__button {
+/* .jodit-toolbar__button {
   color: #b6c2cf !important;
-}
+} */
 
-.jodit-toolbar__button .jodit-icon {
+/* .jodit-toolbar__button .jodit-icon {
   fill: #b6c2cf !important;
   color: #b6c2cf !important;
-}
+} */
 
-.jodit-toolbar__box .jodit-toolbar__button.jodit-toolbar__button_active,
+/* .jodit-toolbar__box .jodit-toolbar__button.jodit-toolbar__button_active,
 .jodit-toolbar__box .jodit-toolbar__dropdown {
   background-color: #1e2226 !important;
   color: #b6c2cf !important;
-}
+} */
 
 .jodit-toolbar__box, .jodit-toolbar__item {
   background-color: #1e2226 !important;
   color: #b6c2cf !important;
 }
 
-.jodit-toolbar__box .jodit-toolbar__button {
+/* .jodit-toolbar__box .jodit-toolbar__button {
   color: #b6c2cf !important;
-}
+} */
 
 

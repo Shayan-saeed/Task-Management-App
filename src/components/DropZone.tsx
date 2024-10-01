@@ -12,7 +12,7 @@ export interface DropZoneProps {
     isLoading: boolean;
     deleteStatus: (statusToDelete: TaskStatus) => void;
     moveTasks: (activeTaskId: string, newStatus: string) => void;
-    openTaskModal: (taskContent: string, TaskStatus: string) => void;
+    openTaskModal: (task: Task) => void;
 }
 
 const DropZone: React.FC<DropZoneProps> = ({ id, status, tasks, deleteTask, isLoading, handleUpdate, deleteStatus, moveTasks, openTaskModal }) => {

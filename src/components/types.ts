@@ -5,4 +5,7 @@ export interface Task {
   content: string;
   status: TaskStatus;
   orderIndex: number;
+  description: string;
+  activities: string[];
+  createdAt: string;
 }

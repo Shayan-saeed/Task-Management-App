@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { auth, database } from './firebaseConfig';
 import TaskInput from "./TaskInput";
 import { Task, TaskStatus } from './types';
@@ -19,7 +19,7 @@ import DragOverlayComponent from './DragOverlayComponent';
 import Modal from './modals/Modal';
 import PlusIcon from "../icons/PlusIcon";
 import SortableStatus from "./SortableStatus";
-import { ref, set, get, onValue, remove, update } from "firebase/database";
+import { ref, set, get, onValue, remove, update, push } from "firebase/database";
 import TaskModal from "./modals/TaskModal";
 
 const defaultStatuses: TaskStatus[] = ["to-do", "doing", "done"];
@@ -39,8 +39,7 @@ const Board: React.FC = () => {
     const [draggedStatus, setDraggedStatus] = useState<DraggedStatus | null>(null);
     const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState<boolean>(false); 
-    const [selectedTaskContent, setSelectedTaskContent] = useState<string>("");
-    const [selectedTaskStatus, setSelectedTaskStatus] = useState<string>("");
+    const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
 
     useEffect(() => {
@@ -130,16 +129,16 @@ const Board: React.FC = () => {
         setButtonRect(null);
     };
 
-    const openTaskModal = (taskContent: string, TaskStatus: string) => {
-        setSelectedTaskContent(taskContent);
-        setSelectedTaskStatus(TaskStatus);
+    const openTaskModal = (task: Task) => {
+        setSelectedTask(task)
         setIsTaskModalOpen(true);
     }
 
     const closeTaskModal = () => {
         setIsTaskModalOpen(false);
-        setSelectedTaskContent("");
+        setSelectedTask(null);
     };
+
 
     const addTaskInStatus = async (status: TaskStatus) => {
         try {
@@ -236,6 +235,34 @@ const Board: React.FC = () => {
         } catch (error) {
             console.error("Error deleting task:", error);
             toast.error("Error deleting task", { position: "top-right" });
+        }
+    };
+
+    const saveActivity = async (taskId: string, newActivity: string) => {
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+    
+            const taskRef = ref(database, `tasks/${user.uid}/${taskId}/activities`);
+    
+            const newActivityRef = push(taskRef);
+            await set(newActivityRef, newActivity);
+    
+            console.log("Activity saved successfully!");
+        } catch (error) {
+            console.error("Error saving activity:", error);
+        }
+    };
+
+    const saveDescription = async (taskId: string, newDescription: string) => {
+        try {
+            const user = auth.currentUser;
+            if (!user) return;
+            const taskRef = ref(database, `tasks/${user.uid}/${taskId}`);
+            await update(taskRef, { description: newDescription }); 
+            console.log("Description updated successfully!");
+        } catch (error) {
+            console.error("Error updating description:", error);
         }
     };
 
@@ -480,16 +507,26 @@ const Board: React.FC = () => {
                                     onClick={closeModal}
                                     className="text-[#b6c2cf] h-[32px] w-[32px] text-center rounded-sm p-1 pt-3"
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-5">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
                         </div>
                     </Modal>
                 )}
-                {isTaskModalOpen && (
-                    <TaskModal closeTaskModal={closeTaskModal} tasks={tasks} taskContent={selectedTaskContent} TaskStatus={selectedTaskStatus} />
+                {isTaskModalOpen && selectedTask && (
+                    <TaskModal
+                    closeTaskModal={closeTaskModal} 
+                    taskDescription={selectedTask.description || ""} 
+                    activities={selectedTask.activities || []} 
+                    taskContent={selectedTask.content} 
+                    TaskStatus={selectedTask.status} 
+                    taskId={selectedTask.id}  
+                    saveDescription={saveDescription} 
+                    saveActivity={saveActivity} 
+                    createdAt={selectedTask.createdAt}
+                    />
                 )}
                 <div className="flex h-[477px] max-sm:h-full ">
                     <div className="overflow-x-auto scrollbar-thin w-full">

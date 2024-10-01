@@ -1,50 +1,143 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import JoditEditor from "jodit-react";
-import { Task, TaskStatus } from '../types';
+import { auth, database } from '../firebaseConfig';
+import { ref, get } from "firebase/database";
 
 interface TaskModalProps {
     closeTaskModal: () => void;
-    tasks: Task[];
     taskContent: string;
     TaskStatus: string;
+    taskId: string;
+    taskDescription: string;
+    activities: string[];
+    saveDescription: (taskId: string, newDescription: string) => Promise<void>;
+    saveActivity: (taskId: string, newActivity: string) => Promise<void>;
+    createdAt: string;
 }
 
-const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks, taskContent, TaskStatus}) => {
+const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, TaskStatus, taskId, taskContent, saveDescription, taskDescription, saveActivity, activities: initialActivities = [], createdAt }) => {
     const editor = useRef(null);
-    const [content, setContent] = useState("");
+    const [content, setContent] = useState<string>(taskDescription || "");
+    const [isEditing, setIsEditing] = useState<boolean>(false);
+    const [activities, setActivities] = useState<string[]>(initialActivities);
+    const [newActivity, setNewActivity] = useState<string>("");
+    const [isActivityEditorOpen, setActivityEditorOpen] = useState(false);
+    const [showDetails, setShowDetails] = useState<boolean>(false);
+    const createdDate = new Date(createdAt)
 
-    // const options = ['bold', 'italic', '|', 'ul', 'ol', '|', 'font', 'fontsize', '|', 'outdent', 'indent', 'align', '|', 'hr', '|', 'fullsize', 'brush', '|', 'table', 'link', '|', 'undo', 'redo',];
-
+    const formattedDate = createdDate.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    
     const editorConfig = {
+        theme: "dark",
         readonly: false,
         height: 300,
         toolbarSticky: false,
         showCharsCounter: false,
         showWordsCounter: false,
         showXPathInStatusbar: false,
-        buttons: ["bold", "italic", "underline", "|", "link", "unlink", "|", "ul", "ol", "|", "align"],
+        buttons: ["bold", "italic", "underline", "ul", "ol", "font", "link", "undo", "redo", "image", "justify"],
         style: {
-            backgroundColor: '#22272b',
-            color: '#b6c2cf',
-            padding: '10px',
-            fontSize: 'small'
+            backgroundColor: "#22272b",
+            color: "#b6c2cf",
+            padding: "15px",
+            fontSize: "small",
+        },
+        disablePlugins: [
+            "ordered-list", "about", "add-new-line", "ai-assistant", "backspace", "class-span", "clean-html",
+            "clipboard", "color", "copyformat", "delete-command", "drag-and-drop", "drag-and-drop-element",
+            "dtd", "enter", "file", "focus", "font", "format-block", "hotkeys", "hr", "iframe",
+            "image-processor", "image-properties", "indent", "inline-popup", "key-arrow-outside", "limit",
+            "line-height", "mobile", "xpath", "wrap-nodes", "video", "table-keyboard-navigation", "table",
+            "tab", "symbols", "sticky", "stat", "spellcheck", "speech-recognize", "source", "select-cells", "select", "powered-by-jodit", "preview", "print", "redo-undo", "resize-cells",
+            "resize-handler", "resizer", "search", "paste", "paste-from-word", "paste-storage",
+            "media", "fullsize"
+        ],
+    };
+
+
+    const activityEditorConfig = {
+        theme: "dark",
+        readonly: false,
+        height: 100,
+        toolbarSticky: false,
+        showCharsCounter: false,
+        showWordsCounter: false,
+        showXPathInStatusbar: false,
+        buttons: ["bold", "italic", "underline", "ul", "ol", "font", "link", "undo", "redo", "image", "justify"],
+        style: {
+            backgroundColor: "#22272b",
+            color: "#b6c2cf",
+            padding: "15px",
+            fontSize: "small",
+        },
+        disablePlugins: [
+            "ordered-list", "about", "add-new-line", "ai-assistant", "backspace", "class-span", "clean-html",
+            "clipboard", "color", "copyformat", "delete-command", "drag-and-drop", "drag-and-drop-element",
+            "dtd", "enter", "file", "focus", "font", "format-block", "hotkeys", "hr", "iframe",
+            "image-processor", "image-properties", "indent", "inline-popup", "key-arrow-outside", "limit",
+            "line-height", "mobile", "xpath", "wrap-nodes", "video", "table-keyboard-navigation", "table",
+            "tab", "symbols", "sticky", "stat", "spellcheck", "speech-recognize", "source", "select-cells", "select", "powered-by-jodit", "preview", "print", "redo-undo", "resize-cells",
+            "resize-handler", "resizer", "search", "paste", "paste-from-word", "paste-storage",
+            "media", "fullsize"
+        ],
+    };
+
+    useEffect(() => {
+        if (initialActivities) {
+            const activitiesArray = Object.values(initialActivities);
+            setActivities(activitiesArray);
         }
+    }, [initialActivities]);
+
+    useEffect(() => {
+        setContent(taskDescription || "");
+    }, [taskContent]);
+
+    const isContentEmpty = (content: string) => {
+        const strippedContent = content.replace(/<\/?p>|<br\s*\/?>/gi, "").trim();
+        return strippedContent === "";
+    };
+
+    const toggleActivityEditor = () => {
+        setActivityEditorOpen(!isActivityEditorOpen);
+    };
+
+    const showDetailsContainer = () => {
+        setShowDetails(!showDetails)
+    }
+
+    const handleSaveActivity = async () => {
+        if (!newActivity.trim()) return;
+        try {
+            await saveActivity(taskId, newActivity);
+            setActivities((prevActivities) => {
+                if (!Array.isArray(prevActivities)) {
+                    return [newActivity];
+                }
+                return [...prevActivities, newActivity];
+            });
+            setNewActivity("");
+            toggleActivityEditor()
+        } catch (error) {
+            console.error("Error saving activity:", error);
+        }
+    };
+
+    const handleSave = async () => {
+        await saveDescription(taskId, content);
+        setIsEditing(false);
     };
 
     const handleContentClick = (event: React.MouseEvent) => {
         event.stopPropagation();
     };
 
-    const [isDescriptionEditorOpen, setDescriptionEditorOpen] = useState(false);
-    const [isActivityEditorOpen, setActivityEditorOpen] = useState(false);
-
-
     const toggleDescriptionEditor = () => {
-        setDescriptionEditorOpen(!isDescriptionEditorOpen);
-    };
-
-    const toggleActivityEditor = () => {
-        setActivityEditorOpen(!isActivityEditorOpen);
+        setIsEditing(!isEditing);
     };
 
     return (
@@ -67,7 +160,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks, taskConten
                         <div className="flex-1">
                             <h2 className="tracking-wide text-xl font-semibold">{taskContent}</h2>
                             <p className="text-sm text-[#b6c2cf]">
-                                In list <span className="underline">{TaskStatus}</span>
+                                In list <span className="underline">{TaskStatus.charAt(0).toUpperCase() + TaskStatus.slice(1)}</span>
                             </p>
                         </div>
                     </div>
@@ -95,11 +188,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks, taskConten
                     </div>
                 </div>
 
-                <div className="flex w-full rounded-lg">
+                <div className="flex w-full flex-col md:flex-row rounded-lg">
                     <div className="flex-1 p-5">
                         <div className="ml-12 mt-4">
                             <h3 className="text-xs">Notifications</h3>
-                            <button className="flex items-center font-semibold w-[92px] text-sm bg-[#3c454d] mt-2 p-1.5 rounded-[3px] cursor-pointer hover:bg-gray-600">
+                            <button title="Watch card" className="flex items-center font-semibold w-[92px] text-sm bg-[#3c454d] mt-2 p-1.5 rounded-[3px] cursor-pointer hover:bg-gray-600">
                                 <span className="mr-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="h-4 w-4">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
@@ -117,19 +210,17 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks, taskConten
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                                     </svg>
                                 </span>
-                                <h3 className="text-sm font-bold ml-2">Description</h3>
+                                <h3 className="flex-1 text-sm font-bold ml-2">Description</h3>
+                                {isEditing ? null :
+                                    <button
+                                        onClick={toggleDescriptionEditor}
+                                        className="bg-[#3c454d] hover:bg-gray-600 font-bold rounded-sm h-[32px] cursor-pointer w-[50px] text-sm mt-3"
+                                    >
+                                        Edit
+                                    </button>
+                                }
                             </div>
-                            <button
-                                onClick={toggleDescriptionEditor}
-                                className="w-full text-left 
-                            text-sm font-semibold 
-                            bg-[#3c454d] text-[#b6c2cf] 
-                            mt-2 pb-6 pl-3 pt-2 rounded-[3px] 
-                            hover:bg-gray-600 relative">
-                                Add a more detailed description...
-                            </button>
-
-                            {isDescriptionEditorOpen && (
+                            {isEditing ? (
                                 <div className="mt-3">
                                     <JoditEditor
                                         ref={editor}
@@ -139,6 +230,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks, taskConten
                                         onChange={newContent => { }}
                                     />
                                     <button
+                                        onClick={handleSave}
                                         className="bg-[#579dff] hover:bg-blue-400 font-bold rounded-sm h-[32px] cursor-pointer w-[50px] text-sm text-[#2d4361]"
                                     >
                                         Save
@@ -148,10 +240,19 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks, taskConten
                                         className="text-[#b6c2cf] h-[32px] w-[50px] rounded-sm text-sm pl-4 pt-4"
                                     >
                                         Cancel
-
                                     </button>
                                 </div>
-
+                            ) : (
+                                <>
+                                    <div
+                                        className="w-full text-left text-sm font-semibold bg-[#3c454d] text-[#b6c2cf] mt-2 pb-6 pl-3 pt-2 rounded-[3px] hover:bg-gray-600 relative"
+                                        dangerouslySetInnerHTML={{
+                                            __html: isContentEmpty(content)
+                                                ? "Add a more detailed description..."
+                                                : content
+                                        }}
+                                    />
+                                </>
                             )}
                         </div>
 
@@ -168,31 +269,97 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks, taskConten
                                     </div>
                                 </div>
                                 <div>
-                                    <button className="flex items-center font-semibold w-full text-left text-sm bg-[#3c454d] mt-2 p-1.5 mb-1.5 rounded-[3px] cursor-pointer hover:bg-gray-600">
-                                        Show details
+                                    <button onClick={showDetailsContainer}
+                                        className="flex items-center font-semibold w-full text-left text-sm bg-[#3c454d] mt-2 p-1.5 mb-1.5 rounded-[3px] cursor-pointer hover:bg-gray-600">
+                                        {showDetails ? "Hide Details" : "Show details"} 
                                     </button>
                                 </div>
                             </div>
-                            <button onClick={toggleActivityEditor} className="w-full text-left font-semibold text-sm pb-6 pl-3 pt-2 bg-[#3c454d] text-[#b6c2cf] mt-2 rounded-[3px] hover:bg-gray-600">
-                                Write a comment...
-                            </button>
+                            <div className="mt-3">
+                                {activities.map((activity, index) => (
+                                    <div key={index}>
+                                        <div
+                                            className="activity-text w-full text-left text-sm font-semibold bg-[#3c454d] text-[#b6c2cf] mt-2 pb-2 pl-3 pt-2 rounded-[3px] hover:bg-gray-600"
+                                            dangerouslySetInnerHTML={{ __html: activity }}
+                                        />
+                                    </div>
+                                ))
+                                }
+                            </div>
+                            <div className="flex justify-center items-start space-x-2">
+                                <div className="bg-[#579dff] text-[#2d4361] w-[32px] h-[32px] rounded-full">
+                                    <h3 className="font-semibold p-1">SS</h3>
+                                </div>
+                                {isActivityEditorOpen ?
+                                    <div className="">
+                                        <JoditEditor
+                                            ref={editor}
+                                            value={newActivity}
+                                            config={activityEditorConfig}
+                                            onBlur={newContent => setNewActivity(newContent)}
+                                            onChange={newContent => { }}
+                                        />
+                                        <button
+                                            onClick={handleSaveActivity}
+                                            className="bg-[#579dff] hover:bg-blue-400 font-bold rounded-sm h-[32px] cursor-pointer w-[50px] text-sm text-[#2d4361]"
+                                        >
+                                            Save
+                                        </button>
+                                        <button
+                                            onClick={toggleActivityEditor}
+                                            className="text-[#b6c2cf] h-[32px] w-[50px] rounded-sm text-sm pl-4 pt-4"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div> : <button
+                                        onClick={toggleActivityEditor}
+                                        className="w-full text-left font-extralight text-sm pb-2 pl-3 pt-2 bg-[#22272b] text-[#798794] rounded-lg hover:bg-gray-600"
+                                    >
+                                        Write a comment...
+                                    </button>
+                                }
 
-                            {isActivityEditorOpen && (
+                            </div>
+
+                            {/* {isActivityEditorOpen && (
                                 <div className="mt-3">
                                     <JoditEditor
                                         ref={editor}
-                                        value={content}
-                                        config={editorConfig}
-                                        onBlur={newContent => setContent(newContent)}
+                                        value={newActivity}
+                                        config={activityEditorConfig}
+                                        onBlur={newContent => setNewActivity(newContent)}
                                         onChange={newContent => { }}
                                     />
+                                    <button
+                                        onClick={handleSaveActivity}
+                                        className="bg-[#579dff] hover:bg-blue-400 font-bold rounded-sm h-[32px] cursor-pointer w-[50px] text-sm text-[#2d4361]"
+                                    >
+                                        Save
+                                    </button>
+                                    <button
+                                        onClick={toggleActivityEditor}
+                                        className="text-[#b6c2cf] h-[32px] w-[50px] rounded-sm text-sm pl-4 pt-4"
+                                    >
+                                        Cancel
+                                    </button>
                                 </div>
-                            )}
+                            )} */}
                         </div>
+                        {showDetails && (
+                            <div className="flex space-x-2 mt-2">
+                                <div className="bg-[#579dff] text-[#2d4361] w-[32px] h-[32px] rounded-full">
+                                    <h3 className="font-semibold p-1">SS</h3>
+                                </div>
+                                <div>
+                                    <p className="text-sm"><span className="font-bold"> Shayan Saeed </span>added this card to {TaskStatus.charAt(0).toUpperCase() + TaskStatus.slice(1)}</p>
+                                    <p className="text-xs">Created at: {formattedDate}</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
 
-                    <div className="max-w-[195px] w-full p-5">
+                    <div className="max-w-[195px] w-full p-5 md:max-w-[195px] md:w-full">
                         <div>
                             <h3 className="text-xs">Add to card</h3>
                             <button className="flex items-center font-semibold w-full text-left text-sm bg-[#3c454d] mt-2 p-1.5 rounded-[3px] cursor-pointer hover:bg-gray-600">
@@ -234,8 +401,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, tasks, taskConten
 
                             <button className="flex items-center w-full font-semibold text-left text-sm bg-[#3c454d] mt-2 p-1.5 rounded-[3px] cursor-pointer hover:bg-gray-600">
                                 <span className="mr-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" className="size-4">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13" />
                                     </svg>
 
                                 </span>
