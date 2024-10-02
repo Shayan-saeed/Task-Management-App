@@ -87,7 +87,7 @@ const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, 
                 <p className='text-[#b6c2cf] text-sm'>{tasks.length === 1 || tasks.length === 0 ? `${tasks.length} task matches filters` : `${tasks.length} tasks match filters`}</p>
             </div>
             <div className='flex flex-col items-start justify-between h-full'>
-                <div className='w-full h-auto max-h-[195px] overflow-x-auto scrollbar-thin'>
+                <div className='w-full h-auto max-h-[195px] min-h-[195px] overflow-x-auto scrollbar-thin'>
                     <DropZone
                         id={id}
                         status={status}
