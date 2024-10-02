@@ -19,6 +19,7 @@
     "@types/react-dom": "^18.3.0",
     "@vercel/speed-insights": "^1.0.12",
     "firebase": "^10.13.2",
+    "formik": "^2.4.6",
     "jodit-react": "^4.1.2",
     "my-app": "file:",
     "react": "^18.3.1",

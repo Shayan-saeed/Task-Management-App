@@ -1,7 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import JoditEditor from "jodit-react";
+import { getAuth } from "firebase/auth";
+import { getInitials } from "../../utils/getInitials";
 import { auth, database } from '../firebaseConfig';
-import { ref, get } from "firebase/database";
+import { ref, onValue, remove, set } from "firebase/database";
+
 
 interface TaskModalProps {
     closeTaskModal: () => void;
@@ -24,17 +27,34 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, TaskStatus, taskI
     const [isActivityEditorOpen, setActivityEditorOpen] = useState(false);
     const [showDetails, setShowDetails] = useState<boolean>(false);
     const createdDate = new Date(createdAt)
+    const [watching, setWatching] = useState<boolean>(false)
+    const [editIndex, setEditIndex] = useState<number | null>(null);
+    const [editedComment, setEditedComment] = useState<string>("");
+
+    const auth = getAuth();
+    const user = auth.currentUser;
+    let initials = '';
+
+    if (user && user.displayName) {
+        initials = getInitials(user.displayName);
+    }
 
     const formattedDate = createdDate.toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
-      });
-    
+    });
+
+    const formattedTime = createdDate.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
     const editorConfig = {
         theme: "dark",
         readonly: false,
         height: 300,
+        width: 530,
         toolbarSticky: false,
         showCharsCounter: false,
         showWordsCounter: false,
@@ -63,6 +83,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, TaskStatus, taskI
         theme: "dark",
         readonly: false,
         height: 100,
+        width: 470,
         toolbarSticky: false,
         showCharsCounter: false,
         showWordsCounter: false,
@@ -87,15 +108,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, TaskStatus, taskI
     };
 
     useEffect(() => {
-        if (initialActivities) {
-            const activitiesArray = Object.values(initialActivities);
-            setActivities(activitiesArray);
-        }
+        setActivities(initialActivities);
     }, [initialActivities]);
+
 
     useEffect(() => {
         setContent(taskDescription || "");
-    }, [taskContent]);
+    }, [taskDescription]);
 
     const isContentEmpty = (content: string) => {
         const strippedContent = content.replace(/<\/?p>|<br\s*\/?>/gi, "").trim();
@@ -106,19 +125,32 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, TaskStatus, taskI
         setActivityEditorOpen(!isActivityEditorOpen);
     };
 
+    const handleWatching = () => {
+        setWatching(!watching)
+    }
+
     const showDetailsContainer = () => {
         setShowDetails(!showDetails)
     }
 
     const handleSaveActivity = async () => {
+
         if (!newActivity.trim()) return;
         try {
             await saveActivity(taskId, newActivity);
-            setActivities((prevActivities) => {
-                if (!Array.isArray(prevActivities)) {
-                    return [newActivity];
-                }
-                return [...prevActivities, newActivity];
+
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const taskRef = ref(database, `tasks/${auth.currentUser.uid}/${taskId}/activities`);
+            onValue(taskRef, (snapshot) => {
+                const updatedActivities = snapshot.val();
+                const activitiesArray = updatedActivities ? Object.values(updatedActivities) as string[] : [];
+
+                setActivities([]);
+                setTimeout(() => {
+                    setActivities(activitiesArray);
+                }, 0);
             });
             setNewActivity("");
             toggleActivityEditor()
@@ -126,6 +158,60 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, TaskStatus, taskI
             console.error("Error saving activity:", error);
         }
     };
+
+    const handleDeleteActivity = async (activityIndex: number) => {
+        try {
+
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const activityRef = ref(database, `tasks/${user.uid}/${taskId}/activities/${activityIndex}`);
+            await remove(activityRef);
+
+            const taskRef = ref(database, `tasks/${user.uid}/${taskId}/activities`);
+            onValue(taskRef, (snapshot) => {
+                const updatedActivities = snapshot.val();
+                const activitiesArray = updatedActivities ? Object.values(updatedActivities) as string[] : [];
+
+                setActivities(activitiesArray);
+
+            });
+        } catch (error) {
+            console.error("Error deleting activity:", error);
+        }
+    };
+
+    const startEditing = (index: number, currentComment: string) => {
+        setEditIndex(index); // Set the index of the comment being edited
+        setEditedComment(currentComment); // Load the current comment content into the editor
+    };
+
+    const handleSaveEditedComment = async (index: number) => {
+        if (!editedComment.trim()) return;
+        const user = auth.currentUser;
+        if (!user) return;
+
+        try {
+            // Update the specific comment in Firebase
+            const activityRef = ref(database, `tasks/${user.uid}/${taskId}/activities/${index}`);
+            await set(activityRef, editedComment); // Overwrite the existing comment with the edited version
+
+            // Update the local state
+            setActivities((prevActivities) => {
+                const updatedActivities = [...prevActivities];
+                updatedActivities[index] = editedComment; // Update the specific comment
+                return updatedActivities;
+            });
+
+            // Reset editing mode
+            setEditIndex(null);
+            setEditedComment("");
+
+        } catch (error) {
+            console.error("Error saving edited comment:", error);
+        }
+    };
+
 
     const handleSave = async () => {
         await saveDescription(taskId, content);
@@ -190,16 +276,25 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, TaskStatus, taskI
 
                 <div className="flex w-full flex-col md:flex-row rounded-lg">
                     <div className="flex-1 p-5">
-                        <div className="ml-12 mt-4">
+                        <div className="ml-8 mt-4">
                             <h3 className="text-xs">Notifications</h3>
-                            <button title="Watch card" className="flex items-center font-semibold w-[92px] text-sm bg-[#3c454d] mt-2 p-1.5 rounded-[3px] cursor-pointer hover:bg-gray-600">
+                            <button
+                                onClick={handleWatching}
+                                title="Watch card"
+                                className="flex items-center font-semibold min-w-[92px] w-auto text-sm bg-[#3c454d] mt-2 p-1.5 rounded-[3px] cursor-pointer hover:bg-gray-600">
                                 <span className="mr-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="h-4 w-4">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.522 5.25 12 5.25s8.268 2.693 9.542 6.75c-1.274 4.057-5.064 6.75-9.542 6.75S3.732 16.057 2.458 12z" />
                                     </svg>
                                 </span>
-                                Watch
+                                {watching ? <div className="flex gap-2 items-center">
+                                    Watching
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                    </svg>
+                                </div> : "Watch"}
+
                             </button>
                         </div>
 
@@ -271,24 +366,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, TaskStatus, taskI
                                 <div>
                                     <button onClick={showDetailsContainer}
                                         className="flex items-center font-semibold w-full text-left text-sm bg-[#3c454d] mt-2 p-1.5 mb-1.5 rounded-[3px] cursor-pointer hover:bg-gray-600">
-                                        {showDetails ? "Hide Details" : "Show details"} 
+                                        {showDetails ? "Hide Details" : "Show details"}
                                     </button>
                                 </div>
                             </div>
-                            <div className="mt-3">
-                                {activities.map((activity, index) => (
-                                    <div key={index}>
-                                        <div
-                                            className="activity-text w-full text-left text-sm font-semibold bg-[#3c454d] text-[#b6c2cf] mt-2 pb-2 pl-3 pt-2 rounded-[3px] hover:bg-gray-600"
-                                            dangerouslySetInnerHTML={{ __html: activity }}
-                                        />
-                                    </div>
-                                ))
-                                }
-                            </div>
                             <div className="flex justify-center items-start space-x-2">
                                 <div className="bg-[#579dff] text-[#2d4361] w-[32px] h-[32px] rounded-full">
-                                    <h3 className="font-semibold p-1">SS</h3>
+                                    <h3 className="font-semibold text-center pt-1">{initials}</h3>
                                 </div>
                                 {isActivityEditorOpen ?
                                     <div className="">
@@ -320,39 +404,61 @@ const TaskModal: React.FC<TaskModalProps> = ({ closeTaskModal, TaskStatus, taskI
                                 }
 
                             </div>
-
-                            {/* {isActivityEditorOpen && (
-                                <div className="mt-3">
-                                    <JoditEditor
-                                        ref={editor}
-                                        value={newActivity}
-                                        config={activityEditorConfig}
-                                        onBlur={newContent => setNewActivity(newContent)}
-                                        onChange={newContent => { }}
-                                    />
-                                    <button
-                                        onClick={handleSaveActivity}
-                                        className="bg-[#579dff] hover:bg-blue-400 font-bold rounded-sm h-[32px] cursor-pointer w-[50px] text-sm text-[#2d4361]"
-                                    >
-                                        Save
-                                    </button>
-                                    <button
-                                        onClick={toggleActivityEditor}
-                                        className="text-[#b6c2cf] h-[32px] w-[50px] rounded-sm text-sm pl-4 pt-4"
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            )} */}
+                            <div className="mt-3" key={activities.length}>
+                                {activities.map((activity, index) => (
+                                    <div key={index} className="flex space-x-2 mt-3">
+                                        <div className="bg-[#579dff] text-[#2d4361] w-[32px] h-[32px] rounded-full">
+                                            <h3 className="font-semibold text-center pt-1">{initials}</h3>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm"><span className="font-bold">{user ? `${user.displayName}` : "No user"}</span></p>
+                                            {editIndex === index ? (
+                                                <div className="flex flex-col">
+                                                    <JoditEditor
+                                                        value={editedComment}
+                                                        config={activityEditorConfig}
+                                                        onBlur={(newContent) => setEditedComment(newContent)}
+                                                        onChange={() => { }}
+                                                    />
+                                                    <div className="flex mt-2 space-x-2">
+                                                        <button onClick={() => handleSaveEditedComment(index)}
+                                                            className="bg-[#579dff] hover:bg-blue-400 font-bold rounded-sm h-[32px] cursor-pointer w-[50px] text-sm text-[#2d4361]">
+                                                            Save
+                                                        </button>
+                                                        <button onClick={() => setEditIndex(null)}
+                                                            className="text-[#b6c2cf] h-[32px] w-[50px] rounded-sm text-sm">
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <div
+                                                        className="w-full min-w-[495px] text-left font-extralight text-sm pb-2 pl-3 pt-2 mt-1.5 bg-[#22272b] text-[#b9c5cf] rounded-lg hover:bg-gray-600"
+                                                        dangerouslySetInnerHTML={{ __html: activity }}
+                                                    />
+                                                    <div className="flex space-x-2 mt-1.5 ml-1.5">
+                                                        <button onClick={() => startEditing(index, activity)}
+                                                            className="text-[#9aa5ad] hover:underline text-xs ">
+                                                            Edit
+                                                        </button>
+                                                        <button onClick={() => handleDeleteActivity(index)} className="text-[#9aa5ad] hover:underline text-xs">Delete</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                         {showDetails && (
-                            <div className="flex space-x-2 mt-2">
+                            <div className="flex space-x-2 mt-3">
                                 <div className="bg-[#579dff] text-[#2d4361] w-[32px] h-[32px] rounded-full">
-                                    <h3 className="font-semibold p-1">SS</h3>
+                                    <h3 className="font-semibold text-center pt-1">{initials}</h3>
                                 </div>
                                 <div>
-                                    <p className="text-sm"><span className="font-bold"> Shayan Saeed </span>added this card to {TaskStatus.charAt(0).toUpperCase() + TaskStatus.slice(1)}</p>
-                                    <p className="text-xs">Created at: {formattedDate}</p>
+                                    <p className="text-sm"><span className="font-bold">{user ? `${user.displayName}` : "No user"}</span> added this card to {TaskStatus.charAt(0).toUpperCase() + TaskStatus.slice(1)}</p>
+                                    <p className="text-xs text-[#a3aab1]">{formattedDate}, {formattedTime}</p>
                                 </div>
                             </div>
                         )}

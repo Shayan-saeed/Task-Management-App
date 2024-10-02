@@ -1,14 +1,13 @@
 import React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Task } from './types';
-import { border } from '@mui/system';
+import { Task } from '../types';
 
 interface DragOverlayProps {
     task: Task;
 }
 
-const DragOverlayComponent: React.FC<DragOverlayProps> = ({ task }) => {
+const TaskDragOverlay: React.FC<DragOverlayProps> = ({ task }) => {
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: task.id,
     });
@@ -41,4 +40,4 @@ const DragOverlayComponent: React.FC<DragOverlayProps> = ({ task }) => {
     );
 };
 
-export default DragOverlayComponent;
+export default TaskDragOverlay;

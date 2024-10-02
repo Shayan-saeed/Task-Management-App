@@ -52,7 +52,7 @@ const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, 
         <div
             ref={setNodeRef}
             style={style}
-            className={clsx("md:w-auto sm:w-auto flex flex-col mb-4 p-4 max-h-[320px] min-w-[279px] bg-[#101204] rounded-xl shadow transition-transform duration-200 ease-in-out",
+            className={clsx("md:w-auto sm:w-auto sm:h-auto flex flex-col pr-4 pl-4 pt-4 min-h-[320px] min-w-[279px] bg-[#101204] rounded-xl shadow transition-transform duration-200 ease-in-out",
                 isDragging && 'opacity-80 scale-105 shadow-lg outline-2 outline-dashed outline-blue-500',
                 isOver && 'outline-2 outline-dashed outline-red-500'
             )}
@@ -87,20 +87,20 @@ const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, 
                 <p className='text-[#b6c2cf] text-sm'>{tasks.length === 1 || tasks.length === 0 ? `${tasks.length} task matches filters` : `${tasks.length} tasks match filters`}</p>
             </div>
             <div className='flex flex-col items-start justify-between h-full'>
-                <div className='w-full max-h-[195px] overflow-x-auto scrollbar-thin'>
+                <div className='w-full h-auto min-h-[195px] overflow-y-auto scrollbar-thin'>
                     <DropZone
                         id={id}
                         status={status}
                         deleteTask={deleteTask}
                         isLoading={isLoading}
                         handleUpdate={handleUpdate}
-                        deleteStatus={deleteStatus}
+                        deleteStatus={deleteStatus} 
                         tasks={tasks}
                         moveTasks={moveTasks}
                         openTaskModal={openTaskModal}
                     />
                 </div>
-                <div className="flex mb-4 w-full justify-between my-2 sm:mt-0">
+                <div className="flex w-full justify-between my-2 sm:mt-0">
                     <div onClick={handleSubmit} className="flex text-[#b6c2cf] text-sm h-[45px] sm:w-auto cursor-pointer gap-2 items-center min-w-[200px]">
                         <button><PlusIcon /></button>
                         <button>Add a task</button>

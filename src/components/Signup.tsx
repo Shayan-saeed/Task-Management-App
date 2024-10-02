@@ -1,13 +1,14 @@
-// src/components/Signup.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signUp } from './authService';
 import { toast } from "react-toastify";
 
+
 const Signup: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -18,9 +19,13 @@ const Signup: React.FC = () => {
       return;
     }
 
+    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(email)) {
+      toast.error("Enter a valid email");
+      return;
+    }
      
     try {
-      await signUp(email, password);
+      await signUp(email, password, name);
       navigate('/board');
       toast.success("User Registered Successfully!!", {
         position: "top-right",
@@ -43,6 +48,18 @@ const Signup: React.FC = () => {
         <h1 className="text-2xl font-bold text-center text-white mb-6">Register an account</h1>
         <form onSubmit={handleSignup} className="space-y-4">
           {error && <p className="text-red-500">{error}</p>}
+          <div>
+            <label htmlFor="name" className="block text-white font-medium mb-1">Name</label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+            />
+          </div>
           <div>
             <label htmlFor="email" className="block text-white font-medium mb-1">Email</label>
             <input

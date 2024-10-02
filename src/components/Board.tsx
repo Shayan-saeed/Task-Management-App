@@ -15,11 +15,11 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { toast } from "react-toastify";
-import DragOverlayComponent from './DragOverlayComponent';
+import TaskDragOverlay from './overlays/TaskDragOverlay';
 import Modal from './modals/Modal';
 import PlusIcon from "../icons/PlusIcon";
 import SortableStatus from "./SortableStatus";
-import { ref, set, get, onValue, remove, update, push } from "firebase/database";
+import { ref, set, get, onValue, remove, update} from "firebase/database";
 import TaskModal from "./modals/TaskModal";
 
 const defaultStatuses: TaskStatus[] = ["to-do", "doing", "done"];
@@ -38,8 +38,11 @@ const Board: React.FC = () => {
     const [newStatusName, setNewStatusName] = useState<string>("");
     const [draggedStatus, setDraggedStatus] = useState<DraggedStatus | null>(null);
     const [buttonRect, setButtonRect] = useState<DOMRect | null>(null);
-    const [isTaskModalOpen, setIsTaskModalOpen] = useState<boolean>(false); 
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState<boolean>(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+    const statusHeight = draggedStatus?.status
+        ? document.getElementById(draggedStatus.status)?.offsetHeight
+        : null;
 
 
     useEffect(() => {
@@ -99,6 +102,9 @@ const Board: React.FC = () => {
         if (statuses.includes(newStatusName.trim())) {
             toast.error("This status already exists!");
             return;
+
+        } else if (newStatusName.trim().length > 20) {
+            toast.error("List title cannot be more than 20 characters!")
         } else if (newStatusName.trim()) {
             const user = auth.currentUser;
             if (!user) return;
@@ -242,13 +248,16 @@ const Board: React.FC = () => {
         try {
             const user = auth.currentUser;
             if (!user) return;
-    
+
             const taskRef = ref(database, `tasks/${user.uid}/${taskId}/activities`);
-    
-            const newActivityRef = push(taskRef);
-            await set(newActivityRef, newActivity);
-    
-            console.log("Activity saved successfully!");
+
+            const snapshot = await get(taskRef);
+            const activitiesArray = snapshot.exists() ? snapshot.val() : [];
+
+            activitiesArray.push(newActivity);
+
+            await set(taskRef, activitiesArray);
+            
         } catch (error) {
             console.error("Error saving activity:", error);
         }
@@ -259,7 +268,7 @@ const Board: React.FC = () => {
             const user = auth.currentUser;
             if (!user) return;
             const taskRef = ref(database, `tasks/${user.uid}/${taskId}`);
-            await update(taskRef, { description: newDescription }); 
+            await update(taskRef, { description: newDescription });
             console.log("Description updated successfully!");
         } catch (error) {
             console.error("Error updating description:", error);
@@ -453,23 +462,27 @@ const Board: React.FC = () => {
         >
             <DragOverlay dropAnimation={null}>
                 {draggedTask ? (
-                    <DragOverlayComponent task={draggedTask} />
+                    <TaskDragOverlay task={draggedTask} />
                 ) : null}
+            </DragOverlay>
+            <DragOverlay>
                 {draggedStatus ? (
-                    <SortableStatus
-                        key={draggedStatus.status}
-                        id={draggedStatus.status}
-                        status={draggedStatus.status}
-                        deleteStatus={deleteStatus}
-                        tasks={getTasksByStatus(draggedStatus.status)}
-                        isLoading={isLoading}
-                        deleteTask={deleteTask}
-                        handleUpdate={handleUpdate}
-                        addTaskInStatus={addTaskInStatus}
-                        moveStatus={moveStatus}
-                        moveTasks={moveTasks}
-                        openTaskModal={openTaskModal}
-                    />
+                    <div style={{ height: statusHeight ? `${statusHeight}px` : 'auto' }}>
+                        <SortableStatus
+                            key={draggedStatus.status}
+                            id={draggedStatus.status}
+                            status={draggedStatus.status}
+                            deleteStatus={deleteStatus}
+                            tasks={getTasksByStatus(draggedStatus.status)}
+                            isLoading={isLoading}
+                            deleteTask={deleteTask}
+                            handleUpdate={handleUpdate}
+                            addTaskInStatus={addTaskInStatus}
+                            moveStatus={moveStatus}
+                            moveTasks={moveTasks}
+                            openTaskModal={openTaskModal}
+                        />
+                    </div>
                 ) : null
                 }
             </DragOverlay>
@@ -517,18 +530,18 @@ const Board: React.FC = () => {
                 )}
                 {isTaskModalOpen && selectedTask && (
                     <TaskModal
-                    closeTaskModal={closeTaskModal} 
-                    taskDescription={selectedTask.description || ""} 
-                    activities={selectedTask.activities || []} 
-                    taskContent={selectedTask.content} 
-                    TaskStatus={selectedTask.status} 
-                    taskId={selectedTask.id}  
-                    saveDescription={saveDescription} 
-                    saveActivity={saveActivity} 
-                    createdAt={selectedTask.createdAt}
+                        closeTaskModal={closeTaskModal}
+                        taskDescription={selectedTask.description || ""}
+                        activities={selectedTask.activities || []}
+                        taskContent={selectedTask.content}
+                        TaskStatus={selectedTask.status}
+                        taskId={selectedTask.id}
+                        saveDescription={saveDescription}
+                        saveActivity={saveActivity}
+                        createdAt={selectedTask.createdAt}
                     />
                 )}
-                <div className="flex h-[477px] max-sm:h-full ">
+                <div className="flex h-[477px] max-sm:h-full">
                     <div className="overflow-x-auto scrollbar-thin w-full">
                         <SortableContext items={statuses} strategy={verticalListSortingStrategy}>
 

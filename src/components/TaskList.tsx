@@ -78,12 +78,6 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
         setIsEditing(true);
     };
 
-    const handleTaskClick = (e: React.MouseEvent) => {
-        if (!isEditing) {
-            openTaskModal(task);
-        }
-    };
-
     useEffect(() => {
         if (isOver && active?.id !== id) {
             moveTasks(active?.id as string, id);
@@ -94,13 +88,11 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
         <div
             ref={setNodeRef}
             style={style}
-            className={clsx("p-2 py-4 my-2 bg-[#22272b] min-h-[20px] text-[#b6c2cf] cursor-pointer rounded-lg text-sm flex justify-between w-full transition-transform duration-300 ease-in-out transform hover:shadow-lg",
+            className={clsx("p-2 my-2 bg-[#22272b] min-h-[20px] text-[#b6c2cf] cursor-grab rounded-lg text-sm flex justify-between w-full transition-transform duration-300 ease-in-out transform hover:shadow-lg",
                 isDragging && 'opacity-80 scale-105 shadow-lg',
                 isOver && ''
             )}
-            onClick={handleTaskClick}
         >
-
             {isEditing ? (
                 <input
                     autoFocus
@@ -130,24 +122,18 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
             ) : (
                 <div
                     ref={setDroppableRef}
-                    className="flex-grow cursor-pointer overflow-x-auto outline-none font-medium text-[#b6c2cf]"
+                    className="flex-grow cursor-grab overflow-x-auto outline-none font-medium text-[#b6c2cf]"
                 >
                     <div
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={handleOpenTaskModal}
+                    {...attributes}
+                    {...listeners}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="cursor-grab"
                     >
-                        <div
-                        {...attributes}
-                        {...listeners}
-                        >
-                            {task.content}
-                        </div>
                         
-                        {/* {task.description === "Add a more detailed description..." || null ? null : <span title="This task has a description"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
-                        </svg></span>
-                        } */}
+                        {task.content}
                     </div>
+
                 </div>
             )}
             <div className="flex gap-2">
@@ -170,6 +156,11 @@ const TaskItem: React.FC<TaskItemProps> = React.memo(({ id, task, deleteTask, ha
                         </button>
                         <button onClick={handleDelete} className="hover:text-red-500">
                             <DeleteIcon />
+                        </button>
+                        <button onClick={handleOpenTaskModal} className="hover:text-gray-900">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
+                            </svg>
                         </button>
                     </>
                 )}

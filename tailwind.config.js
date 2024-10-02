@@ -4,9 +4,7 @@ module.exports = {
   ],
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['"Haas Grot Text R Web"', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-      },
+      
     },
   },
   plugins: [],
