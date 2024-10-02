@@ -541,7 +541,7 @@ const Board: React.FC = () => {
                         createdAt={selectedTask.createdAt}
                     />
                 )}
-                <div className="flex h-[477px] max-sm:h-full">
+                <div className="flex h-[477px] max-xl:h-full max-sm:h-full">
                     <div className="overflow-x-auto scrollbar-thin w-full">
                         <SortableContext items={statuses} strategy={verticalListSortingStrategy}>
 
