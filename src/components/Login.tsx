@@ -1,36 +1,46 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from './authService';
 import { toast, Bounce } from "react-toastify";
+import { useFormik } from 'formik';
+import { loginSchema } from '../schemas';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await login(email, password);
-      navigate('/board');
-      toast.success("User logged in Successfully", {
-        position: "top-right",
-      });
-    } catch (error) {
-      console.error("Login failed", error);
-      toast.error("Login failed. Please check your credentials.", {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
-        transition: Bounce,
-      });
+  const initialValues = {
+    email: "",
+    password: ""
+  }
+
+  const {values, errors, touched, handleChange, handleBlur, handleSubmit} = useFormik({
+    initialValues,
+    validationSchema: loginSchema,
+    onSubmit: (values, actions) => {
+      try {
+        login(values.email, values.password);
+        navigate('/board');
+        toast.success("User logged in Successfully", {
+          position: "top-right",
+        });
+      } catch (error) {
+        console.error("Login failed", error);
+        toast.error("Login failed. Please check your credentials.", {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          theme: "light",
+          transition: Bounce,
+        });
+      }
+      actions.resetForm()
     }
-  };
+  })
 
   return (
     <div className="flex items-center justify-center">
@@ -40,31 +50,36 @@ const Login: React.FC = () => {
         <h1 className='text-4xl font-bold text-white'>Trello</h1>
         </div>
         <h1 className="text-2xl font-bold text-center text-white mb-6">Login to your account</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-white font-medium mb-1">Email</label>
             <input
               id="email"
               name='email'
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              autoComplete='off'
+              value={values.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Enter your email"
-              required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
             />
+            {errors.email && touched.email ? <p className='text-red-500'>{errors.email}</p> : null}
           </div>
           <div>
             <label htmlFor="password" className="block text-white font-medium mb-1">Password</label>
             <input
               id="password"
+              name='password'
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              autoComplete='off'
+              value={values.password}
+              onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Enter your password"
-              required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
             />
+            {errors.password && touched.password ? <p className='text-red-500'>{errors.password}</p> : null}
           </div>
           <button
             type="submit"

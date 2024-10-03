@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import JoditEditor from "jodit-react";
 import { getAuth } from "firebase/auth";
 import { getInitials } from "../../utils/getInitials";
-import { auth, database } from '../firebaseConfig';
+import { database } from '../firebaseConfig';
 import { ref, onValue, remove, set } from "firebase/database";
 
 

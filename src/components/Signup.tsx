@@ -1,42 +1,41 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signUp } from './authService';
 import { toast } from "react-toastify";
+import { useFormik } from 'formik';
+import { signUpSchema } from '../schemas';
+
 
 
 const Signup: React.FC = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [name, setName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const initialValues = {
+    name: "",
+    email: "",
+    password: "",
+    confirm_password: ""
+  }
+
   const navigate = useNavigate();
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
-    if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i.test(email)) {
-      toast.error("Enter a valid email");
-      return;
-    }
-     
-    try {
-      await signUp(email, password, name);
-      navigate('/board');
-      toast.success("User Registered Successfully!!", {
-        position: "top-right",
-      });
-    } catch (error) {
-      console.error("Signup failed", error);
-      toast.error("Error while registering the user", {
-        position: "top-right",
-      });
-    }
-  };
+  const {values, errors, touched, handleBlur, handleChange, handleSubmit } = useFormik({
+    initialValues,
+    validationSchema: signUpSchema,
+    onSubmit: (values, action) => {
+      try {
+        signUp(values.email, values.password, values.name);
+        navigate('/board');
+        toast.success("User Registered Successfully!!", {
+          position: "top-right",
+        });
+      } catch (error) {
+        console.error("Signup failed", error);
+        toast.error("Error while registering the user", {
+          position: "top-right",
+        });
+      }
+       action.resetForm()
+    } 
+  })
 
   return (
     <div className="flex items-center justify-center">
@@ -46,55 +45,66 @@ const Signup: React.FC = () => {
         <h1 className='text-4xl font-bold text-white'>Trello</h1>
         </div>
         <h1 className="text-2xl font-bold text-center text-white mb-6">Register an account</h1>
-        <form onSubmit={handleSignup} className="space-y-4">
-          {error && <p className="text-red-500">{error}</p>}
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-white font-medium mb-1">Name</label>
             <input
               id="name"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              autoComplete='off'
+              name='name'
+              value={values.name}
+              onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Enter your name"
-              required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
             />
+            {errors.name && touched.name ? <p className='text-red-500'>{errors.name}</p> : null}
           </div>
           <div>
             <label htmlFor="email" className="block text-white font-medium mb-1">Email</label>
             <input
               id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name='email'
+              autoComplete='off'
+              value={values.email}
+              onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Enter your email"
-              required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
             />
+            {errors.email && touched.email ?<p className='text-red-500'>{errors.email}</p> : null}
           </div>
           <div>
             <label htmlFor="password" className="block text-white font-medium mb-1">Password</label>
             <input
               id="password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              name='password'
+              autoComplete='off'
+              value={values.password}
+              onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Enter your password"
-              required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
             />
+            {errors.password && touched.password ?<p className='text-red-500'>{errors.password}</p> : null}
           </div>
           <div>
-            <label htmlFor="password" className="block text-white font-medium mb-1">Confirm Password</label>
+            <label htmlFor="confirm_password" className="block text-white font-medium mb-1">Confirm Password</label>
             <input
-              id="password"
+              id="confirm_password"
               type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              name='confirm_password'
+              autoComplete='off'
+              value={values.confirm_password}
+              onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Enter your confirm password"
-              required
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
             />
+            {errors.confirm_password && touched.confirm_password ? <p className='text-red-500'>{errors.confirm_password}</p> : null}
           </div>
           <button type="submit"
             className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50"

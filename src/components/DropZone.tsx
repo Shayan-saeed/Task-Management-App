@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import TaskList from './TaskList';
 import { Task, TaskStatus } from './types';
-import React, { useEffect } from 'react';
+import React from 'react';
 export interface DropZoneProps {
     id: string;
     status: TaskStatus;
