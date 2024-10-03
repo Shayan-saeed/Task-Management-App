@@ -72,12 +72,12 @@ const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, 
         <div
             ref={setNodeRef}
             style={style}
-            className={clsx("md:w-auto sm:w-auto sm:h-auto flex flex-col pr-4 pl-4 pt-4 max-h-[320px] min-w-[279px] bg-[#101204] rounded-xl shadow transition-transform duration-200 ease-in-out",
+            className={clsx("md:w-auto sm:w-auto sm:h-auto flex flex-col pr-4 pl-4 pt-4 max-h-[320px] min-w-[279px] max-w-[300] bg-[#101204] rounded-xl shadow transition-transform duration-200 ease-in-out",
                 isDragging && 'opacity-80 scale-105 shadow-lg outline-2 outline-dashed outline-blue-500',
                 isOver && 'outline-2 outline-dashed outline-red-500'
             )}
         >
-            <div className="flex items-center max-w-[270px] justify-between w-full pb-2">
+            <div className="flex items-center max-w-[270px] whitespace-nowrap justify-between w-full pb-2">
                 <div
                     {...attributes}
                     {...listeners}
