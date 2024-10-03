@@ -10,12 +10,11 @@ export interface DropZoneProps {
     deleteTask: (taskId: string) => void;
     handleUpdate: (taskId: string, newContent: string) => void;
     isLoading: boolean;
-    deleteStatus: (statusToDelete: TaskStatus) => void;
     moveTasks: (activeTaskId: string, newStatus: string) => void;
     openTaskModal: (task: Task) => void;
 }
 
-const DropZone: React.FC<DropZoneProps> = ({ id, status, tasks, deleteTask, isLoading, handleUpdate, deleteStatus, moveTasks, openTaskModal }) => {
+const DropZone: React.FC<DropZoneProps> = ({ id, status, tasks, deleteTask, isLoading, handleUpdate, moveTasks, openTaskModal }) => {
     const { setNodeRef, isOver } = useDroppable({
         id: status,
     });
@@ -26,9 +25,6 @@ const DropZone: React.FC<DropZoneProps> = ({ id, status, tasks, deleteTask, isLo
             ref={setNodeRef}
         >
             {isLoading ? (
-                // <div className="text-center text-[#9fadbc] font-medium py-4">
-                //     Loading...
-                // </div>
                 <div className="flex items-center justify-center h-full w-full overflow-y-hidden"> {/* Parent container for centering */}
                     <div
                         className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-white border-e-transparent align-[-0.125em] text-white motion-reduce:animate-[spin_1.5s_linear_infinite]"

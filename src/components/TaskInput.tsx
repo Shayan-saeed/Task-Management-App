@@ -78,7 +78,7 @@ const TaskInput: React.FC<TaskInputProps> = ({ addTask, statuses }) => {
                 style={{ width: selectWidth > 150 ? selectWidth : 100 }} 
               >
                 {statuses.map((status) => (
-                  <option key={status} value={status}>
+                  <option  key={status} value={status}>
                     {status.charAt(0).toUpperCase() + status.slice(1) || "untitled"}
                   </option>
                 ))}

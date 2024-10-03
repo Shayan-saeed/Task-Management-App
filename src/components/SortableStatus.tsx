@@ -6,11 +6,14 @@ import { Task, TaskStatus } from './types'
 import DeleteIcon from '../icons/DeleteIcon';
 import PlusIcon from '../icons/PlusIcon';
 import clsx from 'clsx'
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
+import UpdateIcon from '../icons/UpdateIcon';
+import { stat } from 'fs';
 
 interface SortableStatusProps {
     id: string;
     status: string;
+    updateStatus: (oldStatus: string, newStatusName: string) => Promise<void>;
     deleteStatus: (status: string) => Promise<void>;
     tasks: Task[];
     isLoading: boolean;
@@ -23,8 +26,10 @@ interface SortableStatusProps {
 }
 
 
-const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks, addTaskInStatus, moveStatus, moveTasks, openTaskModal}) => {
+const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, deleteTask, isLoading, handleUpdate, deleteStatus, tasks, addTaskInStatus, moveStatus, moveTasks, openTaskModal, updateStatus}) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging, active } = useSortable({ id});
+    const [newStatusName, setNewStatusName] = useState(status);
+    const [isEditing, setIsEditing] = useState(false);
 
     const style = {
         transform: CSS.Transform.toString(transform),
@@ -48,6 +53,21 @@ const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, 
         addTaskInStatus(status);
     }, [addTaskInStatus, status]);
 
+    const handleEditSubmit = useCallback(async () => {
+        if (newStatusName !== status && newStatusName.trim()) {
+            await updateStatus(status, newStatusName.trim());
+        }
+        setNewStatusName(status)
+        setIsEditing(false); 
+    }, [newStatusName, status, updateStatus]);
+
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+        e.stopPropagation()
+        if (e.key === 'Enter') {
+            handleEditSubmit();
+        }
+    }, [handleEditSubmit]);
+
     return (
         <div
             ref={setNodeRef}
@@ -64,23 +84,50 @@ const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, 
                     className="flex-grow cursor-grab outline-none"
                     ref={setDroppableRef}
                 >
-                    <h2 className="text-lg font-bold text-[#b6c2cf] capitalize outline-none">
-                        {status.charAt(0).toUpperCase() + status.slice(1) || "Untitled"}
-                    </h2>
+                    {isEditing ? (
+                        <input
+                            type="text"
+                            value={newStatusName}
+                            onChange={(e) => setNewStatusName(e.target.value)}
+                            onBlur={handleEditSubmit} 
+                            onKeyDown={handleKeyDown} 
+                            className="max-w-[200px] text-lg font-bold text-[#b6c2cf] bg-transparent border-b border-dashed border-blue-500 outline-none"
+                            autoFocus
+                        />
+                    ) : (
+                        <h2
+                            className="text-lg font-bold text-[#b6c2cf] capitalize outline-none"
+                            onDoubleClick={() => setIsEditing(true)}
+                        >
+                            {status.charAt(0).toUpperCase() + status.slice(1) || "Untitled"}
+                        </h2>
+                    )}
                 </div>
                 <div className="flex">
-                    {!["to-do", "doing", "done"].includes(status) && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                deleteStatus(status);
-                            }}
-                            className="ml-2 text-red-400"
-                            title="Delete status"
-                        >
-                            <DeleteIcon />
-                        </button>
-                    )}
+                    {/* {!["to-do", "doing", "done"].includes(status) && ( */}
+                        <>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setIsEditing(true);
+                                }}
+                                className="ml-2 text-blue-400"
+                                title="Edit status"
+                            >
+                                <UpdateIcon /> 
+                            </button>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    deleteStatus(status);
+                                }}
+                                className="ml-2 text-red-400"
+                                title="Delete status"
+                            >
+                                <DeleteIcon />
+                            </button>
+                        </>
+                    {/* )} */}
                 </div>
             </div>
             <div className='w-full'>
@@ -93,8 +140,7 @@ const SortableStatus: React.FC<SortableStatusProps> = React.memo(({ id, status, 
                         status={status}
                         deleteTask={deleteTask}
                         isLoading={isLoading}
-                        handleUpdate={handleUpdate}
-                        deleteStatus={deleteStatus} 
+                        handleUpdate={handleUpdate} 
                         tasks={tasks}
                         moveTasks={moveTasks}
                         openTaskModal={openTaskModal}

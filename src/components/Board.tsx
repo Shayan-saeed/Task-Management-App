@@ -22,7 +22,7 @@ import SortableStatus from "./SortableStatus";
 import { ref, set, get, onValue, remove, update} from "firebase/database";
 import TaskModal from "./modals/TaskModal";
 
-const defaultStatuses: TaskStatus[] = ["to-do", "doing", "done"];
+// const defaultStatuses: TaskStatus[] = ["to-do", "doing", "done"];
 
 interface DraggedStatus {
     status: string;
@@ -31,7 +31,7 @@ interface DraggedStatus {
 
 const Board: React.FC = () => {
     const [tasks, setTasks] = useState<Task[]>([]);
-    const [statuses, setStatuses] = useState<TaskStatus[]>(defaultStatuses);
+    const [statuses, setStatuses] = useState<TaskStatus[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [draggedTask, setDraggedTask] = useState<Task | null>(null);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -68,14 +68,14 @@ const Board: React.FC = () => {
         });
 
         const unsubscribeStatuses = onValue(userStatusesRef, (snapshot) => {
-            if (!snapshot.exists()) {
-                const updates = defaultStatuses.reduce((acc, status, index) => {
-                    acc[status] = { statusName: status, orderIndex: index };
-                    return acc;
-                }, {} as Record<string, { statusName: string; orderIndex: number }>);
-                set(userStatusesRef, updates);
-                setStatuses(defaultStatuses);
-            } else {
+            // if (!snapshot.exists()) {
+            //     const updates = defaultStatuses.reduce((acc, status, index) => {
+            //         acc[status] = { statusName: status, orderIndex: index };
+            //         return acc;
+            //     }, {} as Record<string, { statusName: string; orderIndex: number }>);
+            //     set(userStatusesRef, updates);
+            //     setStatuses(defaultStatuses);
+            // } else {
                 const statusesArray: TaskStatus[] = [];
                 snapshot.forEach((childSnapshot) => {
                     const statusData = childSnapshot.val();
@@ -90,7 +90,8 @@ const Board: React.FC = () => {
 
                 setStatuses(statusesArray);
             }
-        });
+        // }
+    );
 
         return () => {
             unsubscribeTasks();
@@ -196,10 +197,10 @@ const Board: React.FC = () => {
     }, [tasks]);
 
     const deleteStatus = useCallback(async (statusToDelete: TaskStatus) => {
-        if (defaultStatuses.includes(statusToDelete)) {
-            toast.error("Cannot delete default statuses!");
-            return;
-        }
+        // if (defaultStatuses.includes(statusToDelete)) {
+        //     toast.error("Cannot delete default statuses!");
+        //     return;
+        // }
 
         const user = auth.currentUser;
         if (!user) return;
@@ -291,6 +292,74 @@ const Board: React.FC = () => {
             toast.error("Error updating task", { position: "top-right" });
         }
     };
+
+    const updateStatus = useCallback(
+        async (statusToUpdate: string, newStatusName: string) => {
+            if (!newStatusName.trim()) {
+                toast.error("Status name cannot be empty!");
+                return;
+            }
+    
+            if (newStatusName.trim().length > 20) {
+                toast.error("Status name cannot be more than 20 characters!");
+                return;
+            }
+    
+            if (statuses.includes(newStatusName.trim())) {
+                toast.error("This status name already exists!");
+                return;
+            }
+    
+            const user = auth.currentUser;
+            if (!user) return;
+    
+            try {
+                // const userStatusesRef = ref(database, `statuses/${user.uid}`);
+                const tasksRef = ref(database, `tasks/${user.uid}`);
+    
+                const tasksSnapshot = await get(tasksRef);
+                const allTasks = tasksSnapshot.val() || {};
+    
+                const updateTasksPromises = Object.keys(allTasks).map(async (taskId) => {
+                    const task = allTasks[taskId];
+                    if (task.status === statusToUpdate) {
+                        return update(ref(database, `tasks/${user.uid}/${taskId}`), { status: newStatusName.trim() });
+                    }
+                });
+    
+                await Promise.all(updateTasksPromises);
+    
+                const oldStatusRef = ref(database, `statuses/${user.uid}/${statusToUpdate}`);
+                const statusSnapshot = await get(oldStatusRef);
+    
+                if (statusSnapshot.exists()) {
+                    const oldStatusData = statusSnapshot.val();
+                    const { orderIndex } = oldStatusData;
+    
+                    const newStatusRef = ref(database, `statuses/${user.uid}/${newStatusName.trim()}`);
+                    await set(newStatusRef, {
+                        statusName: newStatusName.trim(),
+                        orderIndex,  
+                    });
+    
+                    await remove(oldStatusRef);
+                }
+    
+                const updatedStatuses = statuses.map((status) =>
+                    status === statusToUpdate ? newStatusName.trim() : status
+                );
+                setStatuses(updatedStatuses);
+    
+                toast.success("Status updated successfully!");
+            } catch (error) {
+                console.error("Error updating status:", error);
+                toast.error("Error updating status");
+            }
+        },
+        [statuses]
+    );
+    
+    
 
     const handleDragStart = useCallback((event: DragStartEvent) => {
         const activeId = event.active.id.toString();
@@ -472,6 +541,7 @@ const Board: React.FC = () => {
                             key={draggedStatus.status}
                             id={draggedStatus.status}
                             status={draggedStatus.status}
+                            updateStatus={updateStatus}
                             deleteStatus={deleteStatus}
                             tasks={getTasksByStatus(draggedStatus.status)}
                             isLoading={isLoading}
@@ -551,6 +621,7 @@ const Board: React.FC = () => {
                                         key={status}
                                         id={status}
                                         status={status}
+                                        updateStatus={updateStatus}
                                         deleteStatus={deleteStatus}
                                         tasks={getTasksByStatus(status)}
                                         isLoading={isLoading}
